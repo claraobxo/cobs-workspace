@@ -19,6 +19,9 @@ Use **Export backup** regularly; **Import backup** to move to another browser/de
 (Recurring meetings are expanded for the last 60 / next 120 days.)
 
 ## Tips
+- **CEO → Prepare CEO update** builds a ready-to-send status note (completed, needs attention, in progress, coming up, key initiatives). Click *Mark as sent today* so the next one only lists new completions.
+- Tick *Show on CEO page* on an initiative to include it in CEO updates.
+- Shortcuts: **N** = new task, **/** = search.
 - Tasks added inside a meeting move to your task list when you save the meeting.
 - Attendees are added to People when you save a meeting.
 - Tick a task or set its status to *Completed* and it moves to the **Completed** archive, grouped by month.

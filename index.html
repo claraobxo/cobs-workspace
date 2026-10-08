@@ -90,7 +90,34 @@ pre.n{white-space:pre-wrap;font:inherit;margin:6px 0 0;color:var(--ink)}
 .f .arow .at{flex:1 1 220px}.f .arow .ac{padding:0}
 .pbar{height:6px;background:var(--line);border-radius:3px;margin:12px 0 6px;overflow:hidden}.pbar div{height:100%;background:var(--grad)}
 .chip.Achieved,.chip.Exceeded{background:#1E9E6A22;color:var(--ok)}.chip.In-progress{background:#2F6FED22;color:#2F6FED}.chip.Dropped{background:#8890AA33}
-@media(max-width:760px){.app{grid-template-columns:1fr}aside{position:static;height:auto;flex-direction:row;flex-wrap:wrap;padding:10px}aside h1{width:100%;margin-bottom:6px}.nav{width:auto;padding:6px 10px}.sp{display:none}main{padding:16px}}
+.quick>*{min-width:0}.quick .btn{flex:none}.quick input[type=date]{flex:none;width:140px}
+.f input[type=checkbox]{width:auto;padding:0;flex:none}
+#toast{position:fixed;bottom:20px;left:50%;transform:translate(-50%,160%);background:var(--navy);color:#fff;padding:10px 14px;border-radius:10px;display:flex;gap:12px;align-items:center;box-shadow:0 8px 24px #0003;transition:transform .2s;z-index:30;max-width:calc(100% - 32px)}
+#toast.show{transform:translate(-50%,0)}
+.trow.ceo,.row.ceo-row{box-shadow:inset 3px 0 0 var(--pink)}.trow.ceo .row,.row.ceo-row{padding-left:10px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--bad);flex:none}
+.warn{color:#A87200}
+.hero{border:2px solid var(--pink)}.hero h3{color:var(--pink)}
+.herow{display:flex;gap:28px;align-items:center;flex-wrap:wrap}
+.stat.sm{font-size:20px;line-height:36px}
+.stats{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+.cnt{font-weight:700;font-size:16px;min-width:24px;text-align:right}
+.banner{background:#E8A3171f;border:1px solid #E8A31766;border-radius:10px;padding:10px 14px;margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.dsec{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:12px 0 6px}
+.ci{display:flex;gap:8px;align-items:center;padding:3px 0}.ci span{flex:1}.ci.done span{text-decoration:line-through;color:var(--muted)}
+.ta{width:100%;min-height:110px;border:1px solid var(--line);border-radius:8px;padding:10px;background:var(--bg);resize:vertical;font:inherit;color:inherit}
+.qa{flex-wrap:wrap}.qa #qa{flex:1 1 240px}.qc{display:flex;align-items:center;gap:4px;margin:0 4px}
+.nav .n.hot{background:var(--pink)}
+.side-note{font-size:11px;opacity:.65;padding:8px 12px 0;line-height:1.6}
+.mcard{margin-bottom:10px}.ceo-card{box-shadow:inset 3px 0 0 var(--pink)}
+.mtime{font-weight:700;color:var(--pink);min-width:46px;font-size:13px}
+.mnotes{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.mtasks{margin-top:10px;padding-top:8px;border-top:1px solid var(--line)}
+.mt{display:flex;gap:8px;align-items:center;padding:3px 0}.mt .tt{flex:1}.mt.done .tt{text-decoration:line-through;color:var(--muted)}
+button.chip{border:0;cursor:pointer;font:inherit;font-size:11px}
+.chip.sevHigh{background:#D6334A;color:#fff}.chip.sevMedium{background:#E8A317;color:#fff}.chip.sevLow{background:#1E9E6A22;color:var(--ok)}
+.av{width:36px;height:36px;border-radius:50%;background:var(--grad);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex:none}
+@media(max-width:760px){.app{grid-template-columns:1fr}aside{position:static;height:auto;flex-direction:row;flex-wrap:wrap;padding:10px}aside h1{width:100%;margin-bottom:6px}.nav{width:auto;padding:6px 10px}.sp{display:none}main{padding:16px}.side-note{display:none}}
 </style>
 </head>
 <body>
@@ -99,6 +126,7 @@ pre.n{white-space:pre-wrap;font:inherit;margin:6px 0 0;color:var(--ink)}
   <main><div class="top" id="top"></div><div id="view"></div></main>
 </div>
 <div id="modal"></div>
+<div id="toast"></div>
 
 <script>
 const KEY='my-workspace-v1';
@@ -114,33 +142,37 @@ const fmt=s=>s?new Date(s+'T00:00').toLocaleDateString(undefined,{weekday:'short
 let S;
 function load(){try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
   S=Object.assign({tasks:[],meetings:[],initiatives:[],updates:[],decisions:[],people:[],objectives:[],wins:[],tags:['Recruitment','Policies','PIP'],ceoNotes:'',theme:''},S||{});
-  S.tasks.forEach(t=>{t.priority=({High:'High',Medium:'Medium',Low:'Low'})[t.priority]||'Medium';t.region=t.region||'Group';t.tags=t.tags||[];t.updates=t.updates||[];t.status=t.status||(t.done?'Completed':'Not started')});
+  migrate()}
+function migrate(){
+  ['tasks','meetings','initiatives','updates','decisions','people','objectives','wins'].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});if(!Array.isArray(S.tags))S.tags=[];
+  S.tasks.forEach(t=>{t.checklist=t.checklist||[];t.priority=({High:'High',Medium:'Medium',Low:'Low'})[t.priority]||'Medium';t.region=t.region||'Group';t.tags=t.tags||[];t.updates=t.updates||[];t.status=t.status||(t.done?'Completed':'Not started')});
   S.meetings.forEach(m=>{if(!Array.isArray(m.actions))m.actions=String(m.actions||'').split('\n').filter(Boolean).map(l=>({id:uid(),title:l,taskId:'legacy'}))})}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 load();
 
 let view='dash',q='',tab='open',openInit=null;
-const NAV=[['dash','◎','Dashboard'],['week','☑','This Week'],['ceo','★','CEO'],['done','✔','Completed'],['meetings','✎','Meetings'],['inits','◆','Initiatives'],['dr','⚖','Decisions & Risks'],['dev','▲','Objectives & Wins'],['people','☺','People']];
+const NAV=[['dash','◎','Dashboard'],['week','☑','Tasks'],['ceo','★','CEO'],['done','✔','Completed'],['meetings','✎','Meetings'],['inits','◆','Initiatives'],['dr','⚖','Decisions & Risks'],['dev','▲','Objectives & Wins'],['people','☺','People']];
 
 function go(v){view=v;q='';openInit=null;render()}
 function render(){
   document.documentElement.dataset.theme=S.theme;
   const open=S.tasks.filter(t=>!t.done);
   $('#side').innerHTML=`<h1>COB's <span>Workspace</span></h1>`+NAV.map(([k,i,l])=>{
-    let n='';if(k=='week')n=open.filter(t=>!t.ceo).length;if(k=='ceo')n=open.filter(t=>t.ceo).length;
-    return `<button class="nav ${view==k?'on':''}" onclick="go('${k}')"><span>${i}</span>${l}${n?`<span class="n">${n}</span>`:''}</button>`}).join('')+
+    let n='',hot=false;if(k=='week')n=open.length;if(k=='ceo'){n=open.filter(t=>t.ceo).length;hot=open.some(t=>t.ceo&&needsAttn(t))}
+    return `<button class="nav ${view==k?'on':''} ${k=='ceo'?'navceo':''}" onclick="go('${k}')"><span>${i}</span>${l}${n?`<span class="n ${hot?'hot':''}" ${hot?'title="CEO items need attention"':''}>${n}</span>`:''}</button>`}).join('')+
     `<div class="sp"></div>
     <button class="nav" onclick="exportData()">⇩ Export backup</button>
     <button class="nav" onclick="$('#imp').click()">⇧ Import backup</button>
     <button class="nav" onclick="S.theme=S.theme?'':'dark';save();render()">◐ Light / dark</button>
+    <div class="side-note">${S.lastBackup?'Last backup '+fmt(S.lastBackup):'Not backed up yet'}<br>Shortcuts: <b>N</b> new task · <b>/</b> search</div>
     <input type="file" id="imp" hidden accept=".json" onchange="importData(this)">`;
   const title=Object.fromEntries(NAV.map(n=>[n[0],n[2]]))[view];
   const addBtn={dev:[dtab=='wins'?'+ Achievement':'+ Objective',()=>dtab=='wins'?'winForm()':'objForm()'],week:['+ Task',()=>"taskForm()"],ceo:['+ CEO task',()=>"taskForm({ceo:true})"],meetings:['+ Meeting',()=>"meetingForm()"],inits:['+ Initiative',()=>"initForm()"],dr:['+ Entry',()=>"drForm()"],people:['+ Person',()=>"personForm()"]}[view];
-  $('#top').innerHTML=`<h2>${title}</h2><input type="search" placeholder="Filter…" value="${esc(q)}" oninput="q=this.value;renderView()">`+(addBtn?`<button class="btn pink" onclick="${addBtn[1]()}">${addBtn[0]}</button>`:'');
+  $('#top').innerHTML=`<h2>${title}</h2><input type="search" id="srch" placeholder="Search this page  ( / )" value="${esc(q)}" oninput="q=this.value;renderView()">`+(addBtn?`<button class="btn pink" onclick="${addBtn[1]()}">${addBtn[0]}</button>`:'');
   renderView();
 }
 function renderView(){
-  const v={dash:vDash,week:()=>vTasks(false),ceo:()=>vTasks(true),done:vDone,meetings:vMeetings,inits:vInits,dr:vDR,dev:vDev,people:vPeople}[view];
+  const v={dash:vDash,week:vTasks,ceo:vCEO,done:vDone,meetings:vMeetings,inits:vInits,dr:vDR,dev:vDev,people:vPeople}[view];
   $('#view').innerHTML=openInit?vInitDetail():v();
   document.querySelectorAll('#view .chip').forEach(c=>{const k=c.textContent.trim().replace(/\s+/g,'-');if(k)try{c.classList.add(k)}catch(e){}});
 }
@@ -151,109 +183,215 @@ const initColor=id=>(S.initiatives.find(i=>i.id==id)||{}).color||'#0A1F5C';
 /* ---------- Tasks ---------- */
 const REGIONS=['MENA','India','SEA','Group'],PRIOS=['Low','Medium','High'],STATUSES=['Not started','Ongoing','Delayed','On hold','Waiting on others','Completed'];
 const prank={High:0,Medium:1,Low:2,'':3};
-let exp=new Set(),fv={region:'',tag:'',status:''};
-const newTask=o=>({id:uid(),title:'',ceo:false,region:'Group',priority:'Medium',status:'Not started',due:'',tags:[],initiative:'',notes:'',updates:[],done:false,doneAt:null,...o});
+let exp=new Set(),fv={region:'',tag:'',status:''},grp='due';
+const newTask=o=>({id:uid(),title:'',ceo:false,region:'Group',priority:'Medium',status:'Not started',due:'',tags:[],initiative:'',notes:'',updates:[],checklist:[],done:false,doneAt:null,created:today(),...o});
 const applyF=t=>(!fv.region||t.region==fv.region)&&(!fv.tag||(t.tags||[]).includes(fv.tag))&&(!fv.status||(t.status||'Not started')==fv.status);
+const lastAct=t=>(t.updates||[]).map(x=>x.date).sort().pop()||t.created||'';
+const ageDays=s=>s?Math.round((new Date(today()+'T00:00')-new Date(s+'T00:00'))/864e5):null;
+const isOD=t=>!t.done&&t.due&&t.due<today();
+const isStale=t=>!t.done&&ageDays(lastAct(t))>=7;
+const needsAttn=t=>!t.done&&(isOD(t)||['Delayed','On hold'].includes(t.status)||isStale(t));
+const dueKey=t=>t.due||'9999';
+const tsort=a=>a.sort((x,y)=>(y.ceo?1:0)-(x.ceo?1:0)||prank[x.priority||'']-prank[y.priority||'']||(dueKey(x)<dueKey(y)?-1:dueKey(x)>dueKey(y)?1:0));
+function miniRow(t){
+  return `<div class="row ${t.ceo?'ceo-row':''}"><input type="checkbox" onchange="toggle('${t.id}')" title="Mark complete"><div class="t clickable" onclick="taskForm('${t.id}')"><b>${esc(t.title)}</b></div>${t.priority=='High'?'<span class="dot" title="High priority"></span>':''}${t.due?`<span class="sub ${isOD(t)?'od':''}">${fmt(t.due)}</span>`:''}</div>`}
 function taskRow(t){
-  const od=!t.done&&t.due&&t.due<today(),o=exp.has(t.id),n=(t.updates||[]).filter(u=>!u.sys).length;
-  return `<div class="trow"><div class="row ${t.done?'done':''}">
-  <input type="checkbox" ${t.done?'checked':''} onchange="toggle('${t.id}')">
-  <button class="x" title="Status & updates" onclick="toggleExp('${t.id}')">${o?'▾':'▸'}</button>
-  <div class="t clickable" onclick="taskForm('${t.id}')"><b>${esc(t.title)}</b><div class="sub">
+  const o=exp.has(t.id),n=(t.updates||[]).filter(u=>!u.sys).length,cl=t.checklist||[],cd=cl.filter(c=>c.done).length;
+  const st=t.ceo&&isStale(t)?` · <span class="warn">no update in ${ageDays(lastAct(t))}d</span>`:'';
+  return `<div class="trow ${t.ceo?'ceo':''}"><div class="row ${t.done?'done':''}">
+  <input type="checkbox" ${t.done?'checked':''} onchange="toggle('${t.id}')" title="${t.done?'Reopen':'Mark complete'}">
+  <button class="x" title="Status, checklist & updates" onclick="toggleExp('${t.id}')">${o?'▾':'▸'}</button>
+  <div class="t clickable" onclick="toggleExp('${t.id}')"><b>${esc(t.title)}</b><div class="sub">
   ${t.ceo?'<span class="chip ceo">CEO</span>':''}${t.region?`<span class="chip">${esc(t.region)}</span>`:''}${t.priority?`<span class="chip">${t.priority}</span>`:''}<span class="chip">${t.status||'Not started'}</span>
   ${(t.tags||[]).map(g=>`<span class="chip tag">#${esc(g)}</span>`).join('')}${t.initiative?`<span class="chip">${esc(initName(t.initiative))}</span>`:''}
-  ${t.due?`<span class="${od?'od':''}">${fmt(t.due)}</span>`:''}${t.done&&t.doneAt?` · completed ${fmt(t.doneAt)}`:''}${n?` · ${n} update${n>1?'s':''}`:''}</div></div>
-  <button class="x" onclick="delItem('tasks','${t.id}')">×</button></div>${o?taskDetail(t):''}</div>`}
+  ${t.due?`<span class="${isOD(t)?'od':''}">${isOD(t)?'Overdue · ':''}${fmt(t.due)}</span>`:''}${cl.length?` · ☑ ${cd}/${cl.length}`:''}${t.done&&t.doneAt?` · completed ${fmt(t.doneAt)}`:''}${n?` · ${n} update${n>1?'s':''}`:''}${t.winId?' · ★ achievement':''}${st}</div></div>
+  <button class="x" title="Edit" onclick="taskForm('${t.id}')">✎</button><button class="x" title="Delete" onclick="delItem('tasks','${t.id}')">×</button></div>${o?taskDetail(t):''}</div>`}
 function taskDetail(t){
-  const u=[...(t.updates||[])].reverse();
-  return `<div class="detail"><div class="dh"><span class="sub">Status</span><select onchange="setStatus('${t.id}',this.value)">${STATUSES.map(s=>`<option ${s==(t.status||'Not started')?'selected':''}>${s}</option>`).join('')}</select>${t.notes?`<span class="sub">· ${esc(t.notes)}</span>`:''}</div>
-  <div class="quick"><input id="c_${t.id}" placeholder="Add an update or comment, press Enter" onkeydown="if(event.key=='Enter')addComment('${t.id}')"><button class="btn sm" onclick="addComment('${t.id}')">Add</button></div>
+  const u=[...(t.updates||[])].reverse(),cl=t.checklist||[];
+  return `<div class="detail"><div class="dh"><span class="sub">Status</span><select onchange="setStatus('${t.id}',this.value)">${STATUSES.map(s=>`<option ${s==(t.status||'Not started')?'selected':''}>${s}</option>`).join('')}</select>${t.created?`<span class="sub">Created ${fmt(t.created)}</span>`:''}${t.done?`<button class="btn sm ${t.winId?'ghost':'pink'}" style="margin-left:auto" onclick="winFromTask('${t.id}')">${t.winId?'★ View achievement':'★ Log as achievement'}</button>`:''}</div>
+  ${t.notes?`<pre class="n" style="margin:0 0 8px">${esc(t.notes)}</pre>`:''}
+  <div class="dsec">Checklist</div>${cl.map(c=>`<div class="ci ${c.done?'done':''}"><input type="checkbox" ${c.done?'checked':''} onchange="togCl('${t.id}','${c.id}')"><span>${esc(c.text)}</span><button class="x" onclick="delCl('${t.id}','${c.id}')">×</button></div>`).join('')}
+  <div class="quick"><input id="cl_${t.id}" placeholder="Add a step (useful for bigger tasks), press Enter" onkeydown="if(event.key=='Enter')addCl('${t.id}')"><button class="btn sm ghost" onclick="addCl('${t.id}')">Add step</button></div>
+  <div class="dsec">Updates</div><div class="quick"><input id="c_${t.id}" placeholder="Add an update or comment, press Enter" onkeydown="if(event.key=='Enter')addComment('${t.id}')"><button class="btn sm" onclick="addComment('${t.id}')">Add</button></div>
   ${u.length?u.map(x=>`<div class="cm ${x.sys?'sys':''}"><span class="sub">${fmt(x.date)}</span> ${esc(x.text)}</div>`).join(''):'<div class="sub">No updates yet.</div>'}</div>`}
 function toggleExp(id){exp.has(id)?exp.delete(id):exp.add(id);renderView()}
-function setStatus(id,s){const t=S.tasks.find(t=>t.id==id);if(!t||t.status==s)return;t.status=s;t.done=s=='Completed';t.doneAt=t.done?today():null;(t.updates=t.updates||[]).push({date:today(),text:'Status → '+s,sys:true});save();render()}
+function setStatus(id,s){const t=S.tasks.find(t=>t.id==id);if(!t||t.status==s)return;
+  const prev={status:t.status,done:t.done,doneAt:t.doneAt,n:(t.updates||[]).length};
+  t.status=s;t.done=s=='Completed';t.doneAt=t.done?today():null;(t.updates=t.updates||[]).push({date:today(),text:'Status → '+s,sys:true});save();render();
+  if(s=='Completed')toast('Completed – moved to the archive',()=>{Object.assign(t,{status:prev.status,done:prev.done,doneAt:prev.doneAt});t.updates=t.updates.slice(0,prev.n);save();render()})}
 function toggle(id){const t=S.tasks.find(t=>t.id==id);setStatus(id,t.done?'Ongoing':'Completed')}
-function addComment(id){const i=$('#c_'+id);if(!i.value.trim())return;const t=S.tasks.find(t=>t.id==id);(t.updates=t.updates||[]).push({date:today(),text:i.value.trim()});save();renderView();$('#c_'+id)?.focus()}
-function delItem(k,id){if(confirm('Delete this item?')){S[k]=S[k].filter(x=>x.id!=id);save();render()}}
-function quickAdd(ceo){const i=$('#qa');if(!i.value.trim())return;S.tasks.push(newTask({title:i.value.trim(),ceo,region:$('#qr').value,due:$('#qd').value}));save();render();$('#qa').focus()}
-function filterBar(){
+function addComment(id){const i=$('#c_'+id);if(!i.value.trim())return;const t=S.tasks.find(t=>t.id==id);(t.updates=t.updates||[]).push({date:today(),text:i.value.trim()});
+  if(t.status=='Not started'){t.status='Ongoing';t.updates.push({date:today(),text:'Status → Ongoing',sys:true})}save();render();$('#c_'+id)?.focus()}
+function addCl(id){const i=$('#cl_'+id);if(!i.value.trim())return;const t=S.tasks.find(t=>t.id==id);(t.checklist=t.checklist||[]).push({id:uid(),text:i.value.trim(),done:false});save();renderView();$('#cl_'+id)?.focus()}
+function togCl(id,cid){const c=S.tasks.find(t=>t.id==id).checklist.find(c=>c.id==cid);c.done=!c.done;save();renderView()}
+function delCl(id,cid){const t=S.tasks.find(t=>t.id==id);t.checklist=t.checklist.filter(c=>c.id!=cid);save();renderView()}
+function delItem(k,id){const i=S[k].findIndex(x=>x.id==id);if(i<0)return;const [it]=S[k].splice(i,1);save();render();toast('Deleted',()=>{S[k].splice(i,0,it);save();render()})}
+function quickAdd(ceoPage){const i=$('#qa');if(!i.value.trim())return;
+  S.tasks.push(newTask({title:i.value.trim(),ceo:ceoPage||!!$('#qc')?.checked,region:$('#qr').value,priority:$('#qp').value,due:$('#qd').value}));save();render();$('#qa').focus()}
+function quickBar(ceoPage){
+  return `<div class="quick qa"><input id="qa" placeholder="${ceoPage?'Add a CEO task and press Enter':'Add a task and press Enter'}" onkeydown="if(event.key=='Enter')quickAdd(${ceoPage})"><select id="qr" title="Region">${REGIONS.map(r=>`<option ${r=='Group'?'selected':''}>${r}</option>`).join('')}</select><select id="qp" title="Priority">${PRIOS.map(p=>`<option ${p=='Medium'?'selected':''}>${p}</option>`).join('')}</select><input id="qd" type="date" title="Due date (optional)">${ceoPage?'':'<label class="sub qc"><input type="checkbox" id="qc"> CEO</label>'}<button class="btn" onclick="quickAdd(${ceoPage})">Add</button></div>`}
+function filterBar(withGroup){
   const sel=(k,all,opts)=>`<select onchange="fv.${k}=this.value;renderView()"><option value="">${all}</option>${opts.map(o=>`<option ${fv[k]==o?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
-  return `<div class="filters">${sel('region','All regions',REGIONS)}${sel('tag','All HR topics',S.tags)}${sel('status','All statuses',STATUSES)}</div>`}
-function vTasks(ceo){
-  const base=S.tasks.filter(t=>!!t.ceo==ceo&&match(t)&&applyF(t));
-  const open=base.filter(t=>!t.done),nd=S.tasks.filter(t=>!!t.ceo==ceo&&t.done).length;
+  const G=[['due','Group by: Due date'],['region','Group by: Region'],['priority','Group by: Priority'],['status','Group by: Status'],['initiative','Group by: Initiative']];
+  const any=fv.region||fv.tag||fv.status;
+  return `<div class="filters">${withGroup?`<select onchange="grp=this.value;renderView()">${G.map(([k,l])=>`<option value="${k}" ${grp==k?'selected':''}>${l}</option>`).join('')}</select>`:''}${sel('region','All regions',REGIONS)}${sel('tag','All HR topics',S.tags)}${sel('status','All statuses',STATUSES)}${any?`<button class="btn ghost sm" onclick="fv={region:'',tag:'',status:''};renderView()">Clear filters</button>`:''}<button class="btn ghost sm" onclick="tagsMgr()">Edit HR topics</button></div>`}
+function tagsMgr(){
+  $('#modal').innerHTML=`<div class="modal-bg" onmousedown="if(event.target==this)closeM()"><div class="modal"><h3>HR topics</h3><div class="sub" style="margin-bottom:10px">Rename a topic to fix spelling (all tasks update). Deleting removes it from every task.</div>${S.tags.map((g,i)=>`<div class="row"><input id="tg${i}" value="${esc(g)}" onkeydown="if(event.key=='Enter')renTag(${i})" style="flex:1;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg)"><button class="btn sm" onclick="renTag(${i})">Save</button><button class="x" onclick="delTag(${i})">×</button></div>`).join('')||'<div class="empty">No topics yet.</div>'}<div class="quick" style="margin-top:12px"><input id="tgnew" placeholder="New topic" onkeydown="if(event.key=='Enter')newTag()"><button class="btn sm" onclick="newTag()">Add</button></div><div class="acts"><button class="btn ghost" onclick="closeM()">Close</button></div></div></div>`}
+function newTag(){const n=$('#tgnew').value.trim();if(!n)return;if(S.tags.some(g=>g.toLowerCase()==n.toLowerCase())){alert('That topic already exists');return}S.tags.push(n);save();render();tagsMgr();$('#tgnew').focus()}
+function renTag(i){const old=S.tags[i],n=$('#tg'+i).value.trim();if(!n||n==old)return;
+  if(S.tags.some((g,j)=>j!=i&&g.toLowerCase()==n.toLowerCase())){alert('That topic already exists');return}
+  S.tags[i]=n;S.tasks.forEach(t=>{t.tags=(t.tags||[]).map(g=>g==old?n:g)});if(fv.tag==old)fv.tag=n;save();render();tagsMgr()}
+function delTag(i){const g=S.tags[i];if(!confirm('Delete "'+g+'" from all tasks?'))return;
+  S.tags.splice(i,1);S.tasks.forEach(t=>{t.tags=(t.tags||[]).filter(x=>x!=g)});if(fv.tag==g)fv.tag='';save();render();tagsMgr()}
+function groupTasks(open){
   const t0=today(),we=addDays(weekStart(t0),6);
-  const sorted=a=>a.sort((x,y)=>(x.due||'9')<(y.due||'9')?-1:(x.due||'9')>(y.due||'9')?1:prank[x.priority||'']-prank[y.priority||'']);
-  const G=[['Overdue',open.filter(t=>t.due&&t.due<t0),'od'],['Today',open.filter(t=>t.due==t0)],['Rest of this week',open.filter(t=>t.due>t0&&t.due<=we)],['Later',open.filter(t=>t.due>we)],['No due date',open.filter(t=>!t.due)]];
-  let h=`<div class="quick"><input id="qa" placeholder="${ceo?'Add a CEO task and press Enter':'Add a to-do and press Enter'}" onkeydown="if(event.key=='Enter')quickAdd(${ceo})"><select id="qr">${REGIONS.map(r=>`<option ${r=='Group'?'selected':''}>${r}</option>`).join('')}</select><input id="qd" type="date" title="Due date (optional)"><button class="btn" onclick="quickAdd(${ceo})">Add</button></div>`+filterBar();
-  if(ceo)h+=`<div class="card" style="margin:14px 0"><h3>Next CEO 1:1 – talking points</h3><textarea style="width:100%;min-height:90px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--bg)" oninput="S.ceoNotes=this.value;save()" placeholder="Running agenda, asks, FYIs…">${esc(S.ceoNotes)}</textarea></div>`;
-  G.forEach(([n,a,c])=>{if(a.length)h+=`<div class="group ${c||''}">${n} · ${a.length}</div><div class="card">${sorted(a).map(taskRow).join('')}</div>`});
-  if(!open.length)h+='<div class="empty">Nothing open.</div>';
-  if(nd)h+=`<div class="sub" style="margin-top:18px">${nd} completed task${nd>1?'s':''} · <a href="#" onclick="go('done');return false" style="color:var(--pink)">view in Completed archive</a></div>`;
+  if(grp=='region')return REGIONS.map(r=>[r,open.filter(t=>t.region==r)]);
+  if(grp=='priority')return [...PRIOS].reverse().map(p=>[p+' priority',open.filter(t=>t.priority==p)]);
+  if(grp=='status')return STATUSES.filter(s=>s!='Completed').map(s=>[s,open.filter(t=>(t.status||'Not started')==s)]);
+  if(grp=='initiative')return [...S.initiatives.map(i=>[i.name,open.filter(t=>t.initiative==i.id)]),['No initiative',open.filter(t=>!S.initiatives.some(i=>i.id==t.initiative))]];
+  return [['Overdue',open.filter(t=>t.due&&t.due<t0),'od'],['Today',open.filter(t=>t.due==t0)],['Rest of this week',open.filter(t=>t.due>t0&&t.due<=we)],['Later',open.filter(t=>t.due>we)],['No due date',open.filter(t=>!t.due)]]}
+function vTasks(){
+  const open=S.tasks.filter(t=>!t.done&&match(t)&&applyF(t)),nd=S.tasks.filter(t=>t.done).length;
+  let h=quickBar(false)+filterBar(true);
+  groupTasks(open).forEach(([n,a,c])=>{if(a.length)h+=`<div class="group ${c||''}">${esc(n)} · ${a.length}</div><div class="card">${tsort(a).map(taskRow).join('')}</div>`});
+  if(!open.length)h+=`<div class="empty">${S.tasks.some(t=>!t.done)?'Nothing matches these filters.':'No open tasks. Add one above.'}</div>`;
+  if(nd)h+=`<div class="sub" style="margin-top:18px">${nd} completed task${nd>1?'s':''} · <a href="#" onclick="go('done');return false" style="color:var(--pink)">view the Completed archive</a></div>`;
   return h}
 function vDone(){
   const a=S.tasks.filter(t=>t.done&&match(t)&&applyF(t)),g={};
   a.forEach(t=>{const k=(t.doneAt||'0000-00').slice(0,7);(g[k]=g[k]||[]).push(t)});
-  const ks=Object.keys(g).sort().reverse();
-  return filterBar()+(ks.length?ks.map(k=>`<div class="group">${k=='0000-00'?'Earlier':new Date(k+'-01T00:00').toLocaleDateString(undefined,{month:'long',year:'numeric'})} · ${g[k].length}</div><div class="card">${g[k].sort((x,y)=>(y.doneAt||'')<(x.doneAt||'')?-1:1).map(taskRow).join('')}</div>`).join(''):'<div class="empty">Completed tasks are archived here, grouped by month.</div>')}
+  const ks=Object.keys(g).sort().reverse(),m0=today().slice(0,7),tm=S.tasks.filter(t=>t.done&&(t.doneAt||'').startsWith(m0));
+  const sum=`<div class="card" style="margin-bottom:10px"><div class="herow"><div><div class="stat">${tm.length}</div><div class="sub">completed this month</div></div><div><div class="stat">${tm.filter(t=>t.ceo).length}</div><div class="sub">CEO items</div></div>${REGIONS.map(r=>`<div><div class="stat sm">${tm.filter(t=>t.region==r).length}</div><div class="sub">${r}</div></div>`).join('')}<div><div class="stat sm">${S.tasks.filter(t=>t.done).length}</div><div class="sub">all time</div></div></div></div>`;
+  return sum+filterBar()+(ks.length?ks.map(k=>`<div class="group">${k=='0000-00'?'Earlier':new Date(k+'-01T00:00').toLocaleDateString(undefined,{month:'long',year:'numeric'})} · ${g[k].length}</div><div class="card">${g[k].sort((x,y)=>(y.doneAt||'')<(x.doneAt||'')?-1:1).map(taskRow).join('')}</div>`).join(''):'<div class="empty">Completed tasks are archived here, grouped by month.</div>')}
 function taskForm(arg){
   const t=typeof arg=='string'?S.tasks.find(x=>x.id==arg):newTask({id:'',...(arg||{})});
   form(t.id?'Edit task':'New task',[
     ['title','Task','text'],['region','Region','select',REGIONS],['priority','Priority','select',PRIOS],['status','Status','select',STATUSES],
-    ['due','Due date (optional)','date'],['tags','HR topic tags','tags'],
-    ['initiative','Initiative','select',[['','—'],...S.initiatives.map(i=>[i.id,i.name])]],['ceo','CEO-related','check'],['notes','Notes','area']],t,
+    ['due','Due date (optional)','date'],['ceo','CEO-related (always kept visible on the CEO page)','check'],['tags','HR topic tags','tags'],
+    ['initiative','Initiative','select',[['','—'],...S.initiatives.map(i=>[i.id,i.name])]],['notes','Notes','area']],t,
     d=>{if(!d.title.trim())return;const done=d.status=='Completed';
       if(t.id){const r=S.tasks.find(x=>x.id==t.id);if(r.status!=d.status)(r.updates=r.updates||[]).push({date:today(),text:'Status → '+d.status,sys:true});Object.assign(r,d,{done,doneAt:done?(r.doneAt||today()):null})}
       else S.tasks.push(newTask({...d,done,doneAt:done?today():null}))})}
+
+/* ---------- CEO ---------- */
+function vCEO(){
+  const open=S.tasks.filter(t=>t.ceo&&!t.done&&match(t)&&applyF(t));
+  const need=open.filter(needsAttn),rest=open.filter(t=>!needsAttn(t));
+  const prog=rest.filter(t=>['Ongoing','Waiting on others'].includes(t.status)),ns=rest.filter(t=>!prog.includes(t));
+  const since=S.lastBrief||'',doneSince=S.tasks.filter(t=>t.ceo&&t.done&&(!since||t.doneAt>=since));
+  const ci=S.initiatives.filter(i=>i.ceo&&i.status!='Done');
+  const nm=S.meetings.filter(m=>m.ceo&&m.date>=today()).sort((a,b)=>mkey(a)<mkey(b)?-1:1)[0];
+  const sec=(n,a,c)=>a.length?`<div class="group ${c||''}">${n} · ${a.length}</div><div class="card">${tsort(a).map(taskRow).join('')}</div>`:'';
+  return `<div class="card hero" style="margin-bottom:14px"><div class="herow"><div><div class="stat">${S.tasks.filter(t=>t.ceo&&!t.done).length}</div><div class="sub">open CEO items</div></div>
+  <div><div class="stat ${need.length?'od':''}">${S.tasks.filter(t=>t.ceo&&needsAttn(t)).length}</div><div class="sub">need attention</div></div>
+  <div><div class="stat">${doneSince.length}</div><div class="sub">done ${since?'since last update':'so far'}</div></div>
+  <div><div class="stat sm">${since?fmt(since):'—'}</div><div class="sub">last CEO update</div></div>
+  <div class="${nm?'clickable':''}" ${nm?`onclick="meetingForm('${nm.id}')"`:''}><div class="stat sm">${nm?fmt(nm.date):'—'}</div><div class="sub">next CEO meeting${nm?'':' (tick "CEO meeting")'}</div></div>
+  <button class="btn pink" style="margin-left:auto" onclick="briefModal()">Prepare CEO update</button></div></div>`+
+  quickBar(true)+filterBar()+
+  sec('Needs attention – overdue, delayed, on hold or no update in 7+ days',need,'od')+sec('In progress',prog)+sec('Not started',ns)+
+  (!open.length?'<div class="empty">No open CEO items.</div>':'')+
+  `<div class="grid" style="margin-top:18px">
+  <div class="card"><h3>CEO initiatives <button class="btn sm ghost" onclick="go('inits')">All initiatives</button></h3>${ci.length?ci.map(i=>`<div class="row clickable" onclick="view='inits';openInit='${i.id}';render()"><div class="t"><b>${esc(i.name)}</b>${msBar(i)}</div><span class="chip">${i.status}</span></div>`).join(''):'<div class="empty">Tick "Show on CEO page" on an initiative to track it here.</div>'}</div>
+  <div class="card"><h3>Talking points for next 1:1</h3><textarea class="ta" oninput="S.ceoNotes=this.value;save()" placeholder="Running agenda, asks, FYIs…">${esc(S.ceoNotes)}</textarea></div>
+  <div class="card"><h3>Completed ${since?'since last update':''}</h3>${doneSince.length?doneSince.map(t=>`<div class="row done"><div class="t"><b>${esc(t.title)}</b><div class="sub">${fmt(t.doneAt)}</div></div></div>`).join(''):'<div class="empty">Nothing yet.</div>'}</div></div>`}
+function lastNote(t){const u=(t.updates||[]).filter(x=>!x.sys).pop();return u?` – ${u.text} (${fmt(u.date)})`:''}
+function briefText(){
+  const since=S.lastBrief,open=S.tasks.filter(t=>t.ceo&&!t.done),L=[`CEO update – ${new Date().toLocaleDateString(undefined,{day:'numeric',month:'long',year:'numeric'})}`];
+  const lbl=t=>`${t.title} [${t.region}${t.due?', due '+fmt(t.due):''}]`;
+  const sec=(h,a,f)=>{if(a.length){L.push('',h.toUpperCase());a.forEach(t=>L.push(f(t)))}};
+  const flagged=['Delayed','On hold','Waiting on others'];
+  const done=S.tasks.filter(t=>t.ceo&&t.done&&(!since||t.doneAt>=since));
+  const risk=tsort(open.filter(t=>flagged.includes(t.status)||isOD(t)));
+  const prog=tsort(open.filter(t=>t.status=='Ongoing'&&!risk.includes(t)));
+  const next=tsort(open.filter(t=>!risk.includes(t)&&!prog.includes(t)));
+  sec('Completed'+(since?' since '+fmt(since):''),done,t=>`✓ ${t.title} [${t.region}]`);
+  sec('Needs attention / your input',risk,t=>`! ${lbl(t)} – ${flagged.includes(t.status)?t.status:'Overdue'}${lastNote(t)}`);
+  sec('In progress',prog,t=>{const cl=t.checklist||[];return `• ${lbl(t)}${cl.length?` (${cl.filter(c=>c.done).length}/${cl.length} steps)`:''}${lastNote(t)}`});
+  sec('Coming up',next,t=>`• ${lbl(t)}`);
+  const ci=S.initiatives.filter(i=>i.ceo&&i.status!='Done');
+  if(ci.length){L.push('','KEY INITIATIVES');ci.forEach(i=>{const m=i.milestones||[],u=S.updates.filter(x=>x.initiative==i.id).sort((a,b)=>a.date<b.date?-1:1).pop();
+    L.push(`• ${i.name} – ${i.status}${m.length?`, ${m.filter(x=>x.done).length}/${m.length} milestones`:''}${u?` – ${u.text}`:''}`)})}
+  if(S.ceoNotes&&S.ceoNotes.trim())L.push('','FOR DISCUSSION',S.ceoNotes.trim());
+  if(L.length==1)L.push('','No CEO items logged yet.');
+  return L.join('\n')}
+function briefModal(){
+  $('#modal').innerHTML=`<div class="modal-bg" onmousedown="if(event.target==this)closeM()"><div class="modal"><h3>CEO update</h3><div class="sub" style="margin-bottom:8px">Built from your CEO tasks, their latest updates and CEO initiatives. Edit freely before sending.</div><textarea id="brief" class="ta" style="min-height:340px">${esc(briefText())}</textarea>
+  <div class="acts"><button class="btn ghost" style="margin-right:auto" onclick="markBriefed()" title="Next update will list completions from today">Mark as sent today</button><button class="btn ghost" onclick="closeM()">Close</button><button class="btn ghost" onclick="mailBrief()">Open in email</button><button class="btn pink" onclick="copyBrief()">Copy</button></div></div></div>`}
+function copyBrief(){const v=$('#brief').value,fb=()=>{$('#brief').select();document.execCommand('copy');toast('Copied')};try{navigator.clipboard.writeText(v).then(()=>toast('Copied to clipboard'),fb)}catch(e){fb()}}
+function mailBrief(){location.href='mailto:?subject='+encodeURIComponent('Update – '+fmt(today()))+'&body='+encodeURIComponent($('#brief').value)}
+function markBriefed(){const prev=S.lastBrief;S.lastBrief=today();save();closeM();render();toast('Marked as sent – the next update starts from today',()=>{S.lastBrief=prev;save();render()})}
 
 /* ---------- Dashboard ---------- */
 function vDash(){
   const t0=today(),ws=weekStart(t0),we=addDays(ws,6);
   const open=S.tasks.filter(t=>!t.done);
-  const od=open.filter(t=>t.due&&t.due<t0),tod=open.filter(t=>t.due==t0),wk=open.filter(t=>t.due>=ws&&t.due<=we);
+  const od=open.filter(isOD),wk=open.filter(t=>t.due>=t0&&t.due<=we);
   const doneWk=S.tasks.filter(t=>t.done&&t.doneAt>=ws).length;
-  const ceo=open.filter(t=>t.ceo);
+  const ceo=tsort(open.filter(t=>t.ceo)).sort((a,b)=>needsAttn(b)-needsAttn(a)),ceoN=ceo.filter(needsAttn).length;
+  const focus=tsort(open.filter(t=>!t.ceo&&(isOD(t)||t.due==t0||(t.priority=='High'&&(!t.due||t.due<=we))))).slice(0,8);
   const risky=S.initiatives.filter(i=>['At risk','Blocked'].includes(i.status));
   const risks=S.decisions.filter(d=>d.type=='Risk'&&d.status=='Open');
   const mt=S.meetings.filter(m=>m.date>=t0).sort((a,b)=>(a.date+(a.time||''))<(b.date+(b.time||''))?-1:1).slice(0,5);
   const stale=S.people.filter(p=>lastTouch(p)&&lastTouch(p)<addDays(t0,-30));
   const list=(a,f,e)=>a.length?a.map(f).join(''):`<div class="empty">${e}</div>`;
-  return `<div class="grid">
-  <div class="card"><h3>Today</h3><div class="stat">${tod.length}</div><div class="sub">${od.length?`<span class="od">${od.length} overdue</span> · `:''}${wk.length} due this week · ${doneWk} done</div></div>
-  <div class="card"><h3>CEO queue</h3><div class="stat">${ceo.length}</div><div class="sub">${ceo.filter(t=>t.due&&t.due<=we).length} due this week</div></div>
-  <div class="card"><h3>Initiatives needing attention</h3><div class="stat">${risky.length}</div><div class="sub">${risks.length} open risks</div></div></div>
+  const has=S.tasks.length+S.meetings.length+S.initiatives.length>0,ba=ageDays(S.lastBackup);
+  const banner=has&&(ba==null||ba>=7)?`<div class="banner">Your data is stored only in this browser. Last backup: <b>${ba==null?'never':ba+' days ago'}</b>. <button class="btn sm" onclick="exportData()">Back up now</button></div>`:'';
+  const stat=(n,l,c,act)=>`<div class="card clickable" onclick="${act}"><div class="stat ${c||''}">${n}</div><div class="sub">${l}</div></div>`;
+  return banner+`<div class="grid stats">
+  ${stat(od.length,'overdue tasks',od.length?'od':'',"fv={region:'',tag:'',status:''};grp='due';go('week')")}
+  ${stat(wk.length,'due this week','',"grp='due';go('week')")}
+  ${stat(doneWk,'completed this week','',"go('done')")}
+  ${stat(risky.length,'initiatives at risk',risky.length?'od':'',"go('inits')")}</div>
   <div class="grid" style="margin-top:16px">
-  <div class="card"><h3>Focus now <button class="btn sm ghost" onclick="go('week')">All</button></h3>${list([...od,...tod].slice(0,8),taskRow,'Nothing due today.')}</div>
-  <div class="card"><h3>CEO <button class="btn sm ghost" onclick="go('ceo')">All</button></h3>${list(ceo.slice(0,6),taskRow,'No open CEO tasks.')}</div>
+  <div class="card hero"><h3>CEO priorities <button class="btn sm pink" onclick="briefModal()">Prepare update</button></h3><div class="sub" style="margin:-4px 0 6px">${ceo.length} open${ceoN?` · <span class="od">${ceoN} need attention</span>`:''}${S.lastBrief?` · last update ${fmt(S.lastBrief)}`:''}</div>${list(ceo.slice(0,7),miniRow,'No open CEO tasks.')}${ceo.length>7?`<div class="sub" style="margin-top:6px"><a href="#" onclick="go('ceo');return false" style="color:var(--pink)">+${ceo.length-7} more on the CEO page</a></div>`:''}</div>
+  <div class="card"><h3>Focus now <button class="btn sm ghost" onclick="go('week')">All tasks</button></h3>${list(focus,miniRow,'Nothing urgent. Overdue, due-today and high-priority tasks show here.')}</div>
+  <div class="card"><h3>By region</h3>${REGIONS.map(r=>{const a=open.filter(t=>t.region==r),o=a.filter(isOD).length,c=a.filter(t=>t.ceo).length;
+    return `<div class="row clickable" onclick="fv={region:'${r}',tag:'',status:''};grp='due';go('week')"><div class="t"><b>${r}</b></div>${c?`<span class="chip ceo">${c} CEO</span>`:''}${o?`<span class="sub od">${o} overdue</span>`:''}<span class="cnt">${a.length}</span></div>`}).join('')}</div>
   <div class="card"><h3>Upcoming meetings <button class="btn sm ghost" onclick="go('meetings')">All</button></h3>${list(mt,m=>`<div class="row clickable" onclick="meetingForm('${m.id}')"><div class="t"><b>${esc(m.title)}</b><div class="sub">${fmt(m.date)}${m.time?' · '+m.time:''}</div></div></div>`,'No upcoming meetings.')}</div>
-  <div class="card"><h3>Flagged initiatives</h3>${list(risky,i=>`<div class="row clickable" onclick="view='inits';openInit='${i.id}';render()"><div class="t"><b>${esc(i.name)}</b></div><span class="chip ${i.status}">${i.status}</span></div>`,'All on track.')}</div>
+  <div class="card"><h3>Flagged initiatives</h3>${list(risky,i=>`<div class="row clickable" onclick="view='inits';openInit='${i.id}';render()"><div class="t"><b>${esc(i.name)}</b>${msBar(i)}</div><span class="chip">${i.status}</span></div>`,'All initiatives on track.')}</div>
   <div class="card"><h3>Open risks</h3>${list(risks.slice(0,5),d=>`<div class="row clickable" onclick="drForm('${d.id}')"><div class="t"><b>${esc(d.title)}</b><div class="sub">${esc(initName(d.initiative))}</div></div></div>`,'No open risks.')}</div>
-  <div class="card"><h3>Reconnect (30+ days)</h3>${list(stale,p=>`<div class="row"><div class="t"><b>${esc(p.name)}</b><div class="sub">Last: ${fmt(lastTouch(p))}</div></div></div>`,'Everyone is recent.')}</div></div>`}
+  ${stale.length?`<div class="card"><h3>Reconnect (30+ days)</h3>${list(stale,p=>`<div class="row"><div class="t"><b>${esc(p.name)}</b><div class="sub">Last: ${fmt(lastTouch(p))}</div></div></div>`,'')}</div>`:''}</div>`}
 
 /* ---------- Meetings ---------- */
 let mtab='upcoming';
+const dayLbl=d=>d==today()?'Today':d==addDays(today(),1)?'Tomorrow':d==addDays(today(),-1)?'Yesterday':new Date(d+'T00:00').toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long',year:d.slice(0,4)==today().slice(0,4)?undefined:'numeric'});
+const mkey=m=>m.date+(m.time||'');
+const needsNotes=m=>m.date<=today()&&m.date>=addDays(today(),-14)&&!(m.notes||'').trim();
 function vMeetings(){
   const t0=today();let a=S.meetings.filter(match);
-  if(mtab=='upcoming')a=a.filter(m=>m.date>=t0).sort((x,y)=>(x.date+(x.time||''))<(y.date+(y.time||''))?-1:1);
-  else{if(mtab=='past')a=a.filter(m=>m.date<t0);a.sort((x,y)=>(y.date+(y.time||''))<(x.date+(x.time||''))?-1:1)}
-  const tabs=[['upcoming','Upcoming'],['past','Past'],['all','All']];
-  return `<div class="tabs">${tabs.map(([k,l])=>`<button class="btn ${mtab==k?'on':''}" onclick="mtab='${k}';renderView()">${l}</button>`).join('')}<button class="btn ghost" style="margin-left:auto" onclick="$('#ics').click()">⇧ Import calendar (.ics)</button><input type="file" id="ics" hidden accept=".ics" onchange="importICS(this)"></div>`+
-  (a.length?a.map(m=>{const nt=(m.actions||[]).filter(x=>x.taskId).length;return `<div class="card" style="margin-bottom:12px"><div class="row" style="border:0;padding-top:0"><div class="t clickable" onclick="meetingForm('${m.id}')"><b style="font-size:16px">${esc(m.title)}</b><div class="sub">${fmt(m.date)}${m.time?' · '+m.time:''} ${m.cal?'<span class="chip">Calendar</span>':''} ${m.attendees?'· '+esc(m.attendees.length>90?m.attendees.slice(0,90)+'…':m.attendees):''} ${m.initiative?`<span class="chip">${esc(initName(m.initiative))}</span>`:''}</div></div><button class="x" onclick="delItem('meetings','${m.id}')">×</button></div>
-  ${m.notes?`<pre class="n">${esc(m.notes)}</pre>`:''}${nt?`<div class="sub" style="margin-top:8px">${nt} task${nt>1?'s':''} created from this meeting</div>`:''}</div>`}).join(''):`<div class="empty">${mtab=='upcoming'?'No upcoming meetings. Import your calendar (.ics) or add one manually.':'No meetings.'}</div>`)}
+  if(mtab=='upcoming')a=a.filter(m=>m.date>=t0).sort((x,y)=>mkey(x)<mkey(y)?-1:1);
+  else if(mtab=='notes')a=a.filter(needsNotes).sort((x,y)=>mkey(y)<mkey(x)?-1:1);
+  else{if(mtab=='past')a=a.filter(m=>m.date<t0);a.sort((x,y)=>mkey(y)<mkey(x)?-1:1)}
+  const nn=S.meetings.filter(needsNotes).length;
+  const tabs=[['upcoming','Upcoming'],['past','Past'],['notes','Needs notes'+(nn?' · '+nn:'')],['all','All']];
+  let h=`<div class="tabs">${tabs.map(([k,l])=>`<button class="btn ${mtab==k?'on':''}" onclick="mtab='${k}';renderView()">${l}</button>`).join('')}<button class="btn ghost" style="margin-left:auto" onclick="$('#ics').click()">⇧ Import calendar (.ics)</button><input type="file" id="ics" hidden accept=".ics" onchange="importICS(this)"></div>`;
+  if(!a.length)return h+`<div class="empty">${mtab=='upcoming'?'No upcoming meetings. Import your calendar (.ics) or add one manually.':mtab=='notes'?'All meetings from the last 14 days have notes.':'No meetings.'}</div>`;
+  let last='';a.forEach(m=>{if(m.date!=last){h+=`<div class="group">${dayLbl(m.date)}</div>`;last=m.date}h+=meetCard(m)});
+  return h}
+function meetCard(m){
+  const ts=S.tasks.filter(t=>t.meetingId==m.id);
+  return `<div class="card mcard ${m.ceo?'ceo-card':''}"><div class="row" style="border:0;padding:0"><div class="mtime">${m.time||'–'}</div><div class="t clickable" onclick="meetingForm('${m.id}')"><b style="font-size:15px">${esc(m.title)}</b><div class="sub">${m.ceo?'<span class="chip ceo">CEO</span>':''}${m.cal?'<span class="chip">Calendar</span>':''}${m.initiative?`<span class="chip">${esc(initName(m.initiative))}</span>`:''}${m.attendees?esc(m.attendees.length>90?m.attendees.slice(0,90)+'…':m.attendees):''}</div></div><button class="btn sm ${m.notes?'ghost':''}" onclick="meetingForm('${m.id}')">${m.notes?'Open notes':'Add notes'}</button><button class="x" title="Delete" onclick="delItem('meetings','${m.id}')">×</button></div>
+  ${m.notes?`<pre class="n mnotes">${esc(m.notes.length>400?m.notes.slice(0,400)+'…':m.notes)}</pre>`:''}
+  ${ts.length?`<div class="mtasks"><div class="dsec" style="margin-top:0">Follow-up tasks</div>${ts.map(t=>`<div class="mt ${t.done?'done':''}"><span class="tt clickable" onclick="taskForm('${t.id}')">${esc(t.title)}</span><span class="chip">${t.status}</span></div>`).join('')}</div>`:''}</div>`}
 function actRow(r){r=r||{};const d=r.taskId?'disabled':'';
   return `<div class="arow" data-id="${r.id||uid()}" data-task="${r.taskId||''}"><input class="at" placeholder="Task…" value="${esc(r.title||'')}" ${d}><select class="ar" ${d}>${REGIONS.map(x=>`<option ${x==(r.region||'Group')?'selected':''}>${x}</option>`).join('')}</select><select class="ap" ${d}>${PRIOS.map(x=>`<option ${x==(r.priority||'Medium')?'selected':''}>${x}</option>`).join('')}</select><input class="ad" type="date" title="Due (optional)" value="${r.due||''}" ${d}><label class="sub"><input class="ac" type="checkbox" ${r.ceo?'checked':''} ${d}> CEO</label>${r.taskId?'<span class="chip Completed">in tasks</span>':''}<button type="button" class="x" onclick="this.parentNode.remove()">×</button></div>`}
 function addActRow(){$('#arows').insertAdjacentHTML('beforeend',actRow({}));$('#arows .arow:last-child .at').focus()}
+function tplNotes(){const ta=$('#modal textarea[name=notes]'),T='Agenda\n- \n\nKey points\n- \n\nDecisions\n- \n\nFollow-ups (add them as tasks below)\n- ';ta.value=ta.value.trim()?ta.value+'\n\n'+T:T;ta.focus()}
 function meetingForm(id){
-  const m=id?S.meetings.find(x=>x.id==id):{id:'',title:'',date:today(),time:'',attendees:'',initiative:'',notes:'',actions:[]};
+  const m=id?S.meetings.find(x=>x.id==id):{id:'',title:'',date:today(),time:'',attendees:'',initiative:'',ceo:false,notes:'',actions:[]};
   form(id?'Meeting notes':'New meeting',[['title','Meeting / call','text'],['date','Date','date'],['time','Time','time'],['attendees','Attendees (comma separated)','text'],
-    ['initiative','Initiative','select',[['','—'],...S.initiatives.map(i=>[i.id,i.name])]],['notes','Notes','area'],
+    ['initiative','Initiative','select',[['','—'],...S.initiatives.map(i=>[i.id,i.name])]],['ceo','CEO meeting (e.g. your 1:1 with the CEO)','check'],['notes','Notes','area'],
     ['actions','Tasks arising from this meeting (they move to your task list on save)','actions']],m,d=>{
     if(!d.title.trim())return;
     let rec=id?S.meetings.find(x=>x.id==id):null;
     if(!rec){rec={id:uid()};S.meetings.push(rec)}
     Object.assign(rec,d);
-    rec.actions.forEach(r=>{if(r.taskId)return;const t=newTask({title:r.title,region:r.region,priority:r.priority,due:r.due,ceo:r.ceo,initiative:d.initiative,meetingId:rec.id,notes:'From: '+d.title});S.tasks.push(t);r.taskId=t.id});
-    d.attendees.split(',').map(s=>s.trim()).filter(Boolean).forEach(n=>{if(!S.people.some(p=>p.name.toLowerCase()==n.toLowerCase()))S.people.push({id:uid(),name:n,role:'',notes:''})});
-  })}
+    let n=0;rec.actions.forEach(r=>{if(r.taskId)return;const t=newTask({title:r.title,region:r.region,priority:r.priority,due:r.due,ceo:r.ceo||d.ceo,initiative:d.initiative,meetingId:rec.id,notes:'From: '+d.title+' ('+fmt(d.date)+')'});S.tasks.push(t);r.taskId=t.id;n++});
+    d.attendees.split(',').map(s=>s.trim()).filter(Boolean).forEach(nm=>{if(!S.people.some(p=>p.name.toLowerCase()==nm.toLowerCase()))S.people.push({id:uid(),name:nm,role:'',notes:''})});
+    if(n)setTimeout(()=>toast(n+' task'+(n>1?'s':'')+' added to your task list'),0);
+  });
+  const ta=$('#modal textarea[name=notes]');if(ta){ta.style.minHeight='180px';ta.insertAdjacentHTML('afterend','<button type="button" class="btn ghost sm" style="margin-top:6px" onclick="tplNotes()">Insert notes template</button>')}}
 
 /* ---------- Calendar (.ics) import ---------- */
 function lp(val){const m=val.match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})(Z?))?/);if(!m)return null;
@@ -304,41 +442,70 @@ function importICS(el){
   r.readAsText(f);el.value=''}
 
 /* ---------- Initiatives ---------- */
-const STAT=['On track','At risk','Blocked','Done'];
+const STAT=['On track','At risk','Blocked','On hold','Done'],srank={'Blocked':0,'At risk':1,'On hold':2,'On track':3,'Done':4};
+let itab='active';
+const msP=i=>{const m=i.milestones||[];return m.length?Math.round(100*m.filter(x=>x.done).length/m.length):0};
+const msBar=i=>{const m=i.milestones||[];return m.length?`<div class="pbar" style="margin:10px 0 4px"><div style="width:${msP(i)}%"></div></div><div class="sub">${m.filter(x=>x.done).length}/${m.length} milestones · ${msP(i)}%</div>`:''};
+const nextMs=i=>(i.milestones||[]).filter(m=>!m.done).sort((a,b)=>(a.due||'9')<(b.due||'9')?-1:1)[0];
+const lastUpd=i=>S.updates.filter(u=>u.initiative==i.id).map(u=>u.date).sort().pop()||'';
+function addMs(id){const t=$('#ms_t');if(!t.value.trim())return;const i=S.initiatives.find(x=>x.id==id);(i.milestones=i.milestones||[]).push({id:uid(),title:t.value.trim(),due:$('#ms_d').value,done:false,doneAt:null});save();renderView();$('#ms_t')?.focus()}
+function togMs(id,mid){const m=S.initiatives.find(x=>x.id==id).milestones.find(x=>x.id==mid);m.done=!m.done;m.doneAt=m.done?today():null;save();renderView();if(m.done)toast('Milestone completed')}
+function renMs(id,mid){const m=S.initiatives.find(x=>x.id==id).milestones.find(x=>x.id==mid),n=prompt('Milestone',m.title);if(n&&n.trim()){m.title=n.trim();save();renderView()}}
+function delMs(id,mid){const i=S.initiatives.find(x=>x.id==id),k=i.milestones.findIndex(x=>x.id==mid),[it]=i.milestones.splice(k,1);save();renderView();toast('Milestone deleted',()=>{i.milestones.splice(k,0,it);save();renderView()})}
 function vInits(){
-  const a=S.initiatives.filter(match);
-  return `<div class="grid">`+(a.length?a.map(i=>{
-    const ups=S.updates.filter(u=>u.initiative==i.id).sort((x,y)=>y.date<x.date?-1:1);const nt=S.tasks.filter(t=>t.initiative==i.id&&!t.done).length;
-    return `<div class="card clickable" onclick="openInit='${i.id}';render()"><div class="bar" style="background:${i.color}"></div><div style="display:flex;gap:8px;align-items:center"><b style="font-size:16px;flex:1">${esc(i.name)}</b><span class="chip ${i.status}">${i.status}</span></div>
-    <div class="sub">${esc(i.owner||'')} ${i.owner?'· ':''}${nt} open tasks</div>${ups[0]?`<div style="margin-top:10px"><div class="sub">Latest · ${fmt(ups[0].date)}</div>${esc(ups[0].text)}</div>`:'<div class="sub" style="margin-top:10px">No updates yet</div>'}</div>`}).join(''):'<div class="empty">No initiatives yet.</div>')+`</div>`}
+  let a=S.initiatives.filter(match);
+  const nA=S.initiatives.filter(i=>i.status!='Done').length,nD=S.initiatives.length-nA;
+  if(itab=='active')a=a.filter(i=>i.status!='Done');else if(itab=='done')a=a.filter(i=>i.status=='Done');
+  a.sort((x,y)=>(srank[x.status]??5)-(srank[y.status]??5)||(x.name||'').localeCompare(y.name||''));
+  const tabs=[['active',`Active · ${nA}`],['done',`Done · ${nD}`],['all','All']];
+  return `<div class="tabs">${tabs.map(([k,l])=>`<button class="btn ${itab==k?'on':''}" onclick="itab='${k}';renderView()">${l}</button>`).join('')}</div><div class="grid">`+(a.length?a.map(i=>{
+    const nm=nextMs(i),lu=lastUpd(i),age=ageDays(lu),nt=S.tasks.filter(t=>t.initiative==i.id&&!t.done).length,odm=(i.milestones||[]).filter(m=>!m.done&&m.due&&m.due<today()).length;
+    const ups=S.updates.filter(u=>u.initiative==i.id).sort((x,y)=>y.date<x.date?-1:1);
+    return `<div class="card clickable" onclick="openInit='${i.id}';render()"><div class="bar" style="background:${i.color||'#0A1F5C'}"></div><div style="display:flex;gap:8px;align-items:center"><b style="font-size:16px;flex:1">${esc(i.name)}</b>${i.ceo?'<span class="chip ceo">CEO</span>':''}<span class="chip">${i.status}</span></div>
+    <div class="sub">${[i.owner&&esc(i.owner),i.region&&esc(i.region),i.target&&'target '+fmt(i.target),nt+' open task'+(nt==1?'':'s')].filter(Boolean).join(' · ')}</div>${msBar(i)}
+    ${nm?`<div class="sub" style="margin-top:6px">Next milestone: <b>${esc(nm.title)}</b>${nm.due?` · <span class="${nm.due<today()?'od':''}">${fmt(nm.due)}</span>`:''}${odm>1?` · <span class="od">${odm} overdue</span>`:''}</div>`:''}
+    ${ups[0]?`<div style="margin-top:10px">${esc(ups[0].text.length>140?ups[0].text.slice(0,140)+'…':ups[0].text)}</div>`:''}
+    <div class="sub" style="margin-top:6px">${lu?`Last update ${fmt(lu)}${age>=14&&i.status!='Done'?` · <span class="warn">${age} days ago</span>`:''}`:'No updates yet'}</div></div>`}).join(''):`<div class="empty">${S.initiatives.length?'Nothing here.':'No initiatives yet. Use initiatives for bigger projects with milestones.'}</div>`)+`</div>`}
 function vInitDetail(){
   const i=S.initiatives.find(x=>x.id==openInit);if(!i){openInit=null;return vInits()}
   const ups=S.updates.filter(u=>u.initiative==i.id).sort((x,y)=>y.date<x.date?-1:1);
-  const ts=S.tasks.filter(t=>t.initiative==i.id),ms=S.meetings.filter(m=>m.initiative==i.id),ds=S.decisions.filter(d=>d.initiative==i.id);
-  return `<div style="margin-bottom:14px"><button class="btn ghost sm" onclick="openInit=null;render()">← All initiatives</button> <button class="btn ghost sm" onclick="initForm('${i.id}')">Edit</button> <button class="btn ghost sm" onclick="delInit('${i.id}')">Delete</button></div>
-  <div class="card"><div class="bar" style="background:${i.color}"></div><h2 style="margin:0 0 6px">${esc(i.name)} <span class="chip ${i.status}">${i.status}</span></h2><div class="sub">${esc(i.owner||'')}</div><p>${esc(i.desc||'')}</p></div>
+  const ts=S.tasks.filter(t=>t.initiative==i.id),to=tsort(ts.filter(t=>!t.done)),tdn=ts.length-to.length;
+  const ms=S.meetings.filter(m=>m.initiative==i.id).sort((x,y)=>mkey(y)<mkey(x)?-1:1).slice(0,8),ds=S.decisions.filter(d=>d.initiative==i.id);
+  return `<div style="margin-bottom:14px;display:flex;gap:6px;flex-wrap:wrap"><button class="btn ghost sm" onclick="openInit=null;render()">← All initiatives</button><button class="btn ghost sm" onclick="initForm('${i.id}')">Edit</button><button class="btn ghost sm" onclick="delInit('${i.id}')">Delete</button></div>
+  <div class="card"><div class="bar" style="background:${i.color||'#0A1F5C'}"></div><h2 style="margin:0 0 6px">${esc(i.name)} ${i.ceo?'<span class="chip ceo">CEO</span>':''}<span class="chip">${i.status}</span></h2><div class="sub">${[i.owner&&'Owner: '+esc(i.owner),i.region&&esc(i.region),i.target&&'Target '+fmt(i.target)].filter(Boolean).join(' · ')}</div>${i.desc?`<pre class="n" style="margin-top:10px">${esc(i.desc)}</pre>`:''}${msBar(i)}</div>
   <div class="grid" style="margin-top:16px">
-  <div class="card"><h3>Updates <button class="btn sm" onclick="updForm('${i.id}')">+ Update</button></h3>${ups.length?ups.map(u=>`<div class="row"><div class="t"><div class="sub">${fmt(u.date)}</div>${esc(u.text)}</div><button class="x" onclick="delItem('updates','${u.id}')">×</button></div>`).join(''):'<div class="empty">No updates.</div>'}</div>
-  <div class="card"><h3>Tasks <button class="btn sm" onclick="taskForm({initiative:'${i.id}'})">+ Task</button></h3>${ts.length?ts.map(taskRow).join(''):'<div class="empty">None.</div>'}</div>
-  <div class="card"><h3>Meetings</h3>${ms.length?ms.map(m=>`<div class="row clickable" onclick="meetingForm('${m.id}')"><div class="t"><b>${esc(m.title)}</b><div class="sub">${fmt(m.date)}</div></div></div>`).join(''):'<div class="empty">None.</div>'}</div>
-  <div class="card"><h3>Decisions & risks</h3>${ds.length?ds.map(d=>`<div class="row clickable" onclick="drForm('${d.id}')"><div class="t"><b>${esc(d.title)}</b></div><span class="chip ${d.type}">${d.type}</span></div>`).join(''):'<div class="empty">None.</div>'}</div></div>`}
+  <div class="card"><h3>Milestones</h3><div class="quick"><input id="ms_t" placeholder="Add a milestone, press Enter" onkeydown="if(event.key=='Enter')addMs('${i.id}')"><input id="ms_d" type="date" title="Target date (optional)"><button class="btn sm" onclick="addMs('${i.id}')">Add</button></div>${(i.milestones||[]).length?[...i.milestones].sort((a,b)=>(a.done-b.done)||((a.due||'9')<(b.due||'9')?-1:1)).map(m=>`<div class="row ${m.done?'done':''}"><input type="checkbox" ${m.done?'checked':''} onchange="togMs('${i.id}','${m.id}')"><div class="t clickable" onclick="renMs('${i.id}','${m.id}')"><b>${esc(m.title)}</b><div class="sub ${!m.done&&m.due&&m.due<today()?'od':''}">${m.done?'Completed '+fmt(m.doneAt):(m.due?(m.due<today()?'Overdue · ':'Target ')+fmt(m.due):'')}</div></div><button class="x" onclick="delMs('${i.id}','${m.id}')">×</button></div>`).join(''):'<div class="empty">No milestones yet.</div>'}</div>
+  <div class="card"><h3>Updates</h3><div class="quick qa"><input id="iu_t" placeholder="Add an update, press Enter" onkeydown="if(event.key=='Enter')addUpd('${i.id}')"><select id="iu_s" title="Change status"><option value="">Status: no change</option>${STAT.map(s=>`<option>${s}</option>`).join('')}</select><button class="btn sm" onclick="addUpd('${i.id}')">Add</button></div>${ups.length?ups.map(u=>`<div class="row"><div class="t"><div class="sub">${fmt(u.date)}</div>${esc(u.text)}</div><button class="x" onclick="delItem('updates','${u.id}')">×</button></div>`).join(''):'<div class="empty">No updates.</div>'}</div>
+  <div class="card"><h3>Tasks <button class="btn sm" onclick="taskForm({initiative:'${i.id}'})">+ Task</button></h3>${to.length?to.map(taskRow).join(''):'<div class="empty">No open tasks.</div>'}${tdn?`<div class="sub" style="margin-top:6px">${tdn} completed</div>`:''}</div>
+  <div class="card"><h3>Meetings</h3>${ms.length?ms.map(m=>`<div class="row clickable" onclick="meetingForm('${m.id}')"><div class="t"><b>${esc(m.title)}</b><div class="sub">${fmt(m.date)}${m.notes?'':' · no notes'}</div></div></div>`).join(''):'<div class="empty">Link meetings to this initiative to see them here.</div>'}</div>
+  <div class="card"><h3>Decisions & risks <button class="btn sm" onclick="drForm(null,{initiative:'${i.id}'})">+ Add</button></h3>${ds.length?ds.map(d=>`<div class="row clickable" onclick="drForm('${d.id}')"><div class="t"><b>${esc(d.title)}</b><div class="sub">${d.status}</div></div><span class="chip">${d.type}</span>${sev(d)?`<span class="chip sev${sev(d)}">${sev(d)}</span>`:''}</div>`).join(''):'<div class="empty">None.</div>'}</div></div>`}
+function addUpd(id){const t=$('#iu_t');if(!t.value.trim())return;const i=S.initiatives.find(x=>x.id==id),s=$('#iu_s').value;
+  let txt=t.value.trim();if(s&&s!=i.status){txt+=` (status → ${s})`;i.status=s}
+  S.updates.push({id:uid(),initiative:id,date:today(),text:txt});save();render();$('#iu_t')?.focus()}
 function initForm(id){
-  const i=id?S.initiatives.find(x=>x.id==id):{id:'',name:'',owner:'',status:'On track',color:'#0A1F5C',desc:''};
-  form(id?'Edit initiative':'New initiative',[['name','Name','text'],['owner','Owner / sponsor','text'],['status','Status','select',STAT],['color','Color','color'],['desc','Description / goal','area']],i,d=>{
-    if(!d.name.trim())return;if(id)Object.assign(i,d);else S.initiatives.push({id:uid(),...d})})}
-function updForm(id){form('Initiative update',[['date','Date','date'],['text','Update','area'],['status','Set status','select',[['','(no change)'],...STAT]]],{date:today(),text:'',status:''},d=>{
-  if(!d.text.trim())return;S.updates.push({id:uid(),initiative:id,date:d.date,text:d.text});if(d.status)S.initiatives.find(x=>x.id==id).status=d.status})}
+  const i=id?S.initiatives.find(x=>x.id==id):{id:'',name:'',owner:'',region:'',target:'',status:'On track',ceo:false,color:'#0A1F5C',desc:''};
+  form(id?'Edit initiative':'New initiative',[['name','Name','text'],['owner','Owner / sponsor','text'],['region','Region','select',[['','—'],...REGIONS.map(r=>[r,r]),['Multi-region','Multi-region']]],['target','Target completion date','date'],['status','Status','select',STAT],['ceo','Show on CEO page and in CEO updates','check'],['color','Colour','color'],['desc','Description / goal','area']],i,d=>{
+    if(!d.name.trim())return;if(id)Object.assign(i,d);else S.initiatives.push({id:uid(),milestones:[],...d})})}
 function delInit(id){if(confirm('Delete initiative? Its updates are removed; tasks are kept.')){S.initiatives=S.initiatives.filter(i=>i.id!=id);S.updates=S.updates.filter(u=>u.initiative!=id);openInit=null;save();render()}}
 
 /* ---------- Decisions & risks ---------- */
+const LV=['Low','Medium','High'],lvn={Low:1,Medium:2,High:3};
+const sev=d=>{if(d.type!='Risk')return '';const p=(lvn[d.likelihood]||0)*(lvn[d.impact]||0);return !p?'':p>=6?'High':p>=3?'Medium':'Low'};
+const sevn={High:3,Medium:2,Low:1,'':0};
 function vDR(){
-  const a=S.decisions.filter(match).filter(d=>tab=='all'||(tab=='open'?d.status=='Open':d.type.toLowerCase()==tab)).sort((x,y)=>y.date<x.date?-1:1);
-  const tabs=[['open','Open'],['decision','Decisions'],['risk','Risks'],['all','All']];
+  const base=S.decisions.filter(match);
+  const c={open:base.filter(d=>d.status=='Open').length,risk:base.filter(d=>d.type=='Risk'&&d.status=='Open').length,decision:base.filter(d=>d.type=='Decision').length,all:base.length};
+  const a=base.filter(d=>tab=='all'||(tab=='open'?d.status=='Open':d.type.toLowerCase()==tab))
+    .sort((x,y)=>(x.status=='Open'?0:1)-(y.status=='Open'?0:1)||sevn[sev(y)]-sevn[sev(x)]||(y.date<x.date?-1:1));
+  const tabs=[['open',`Open · ${c.open}`],['risk',`Risks · ${c.risk} open`],['decision',`Decisions · ${c.decision}`],['all','All']];
   return `<div class="tabs">${tabs.map(([k,l])=>`<button class="btn ${tab==k?'on':''}" onclick="tab='${k}';renderView()">${l}</button>`).join('')}</div><div class="card">`+
-  (a.length?a.map(d=>`<div class="row"><span class="chip ${d.type}">${d.type}</span><div class="t clickable" onclick="drForm('${d.id}')"><b>${esc(d.title)}</b><div class="sub">${fmt(d.date)} ${d.initiative?'· '+esc(initName(d.initiative)):''} ${d.detail?'· '+esc(d.detail.slice(0,90)):''}</div></div><span class="chip ${d.status}">${d.status}</span><button class="x" onclick="delItem('decisions','${d.id}')">×</button></div>`).join(''):'<div class="empty">Nothing here.</div>')+`</div>`}
-function drForm(id){
-  const d=id?S.decisions.find(x=>x.id==id):{id:'',type:'Decision',title:'',detail:'',date:today(),status:'Open',initiative:''};
-  form(id?'Edit entry':'New decision / risk',[['type','Type','select',['Decision','Risk']],['title','Title','text'],['detail','Context, rationale, mitigation','area'],['date','Date','date'],['status','Status','select',['Open','Closed']],['initiative','Initiative','select',[['','—'],...S.initiatives.map(i=>[i.id,i.name])]]],d,x=>{
+  (a.length?a.map(d=>{const s=sev(d);return `<div class="row ${d.status=='Closed'?'done':''}"><span class="chip">${d.type}</span><div class="t clickable" onclick="drForm('${d.id}')"><b>${esc(d.title)}</b><div class="sub">${[fmt(d.date),d.owner&&esc(d.owner),d.region&&esc(d.region),d.initiative&&esc(initName(d.initiative))].filter(Boolean).join(' · ')}</div>${d.detail?`<div class="sub">${esc(d.detail.slice(0,140))}</div>`:''}${d.type=='Risk'&&d.mitigation?`<div class="sub"><b>Mitigation:</b> ${esc(d.mitigation.slice(0,140))}</div>`:''}</div>${s?`<span class="chip sev${s}" title="Likelihood ${d.likelihood} × impact ${d.impact}">${s} risk</span>`:''}<button class="chip" title="Click to ${d.status=='Open'?'close':'reopen'}" onclick="togDR('${d.id}')">${d.status}</button><button class="x" onclick="delItem('decisions','${d.id}')">×</button></div>`}).join(''):'<div class="empty">Nothing here. Log decisions so you can show why something was agreed, and risks so nothing surprises you.</div>')+`</div>`}
+function togDR(id){const d=S.decisions.find(x=>x.id==id);d.status=d.status=='Open'?'Closed':'Open';save();render()}
+function drForm(id,pre){
+  const d=id?S.decisions.find(x=>x.id==id):{id:'',type:'Decision',title:'',detail:'',owner:'',region:'',likelihood:'',impact:'',mitigation:'',date:today(),status:'Open',initiative:'',...(pre||{})};
+  form(id?'Edit entry':'New decision / risk',[['type','Type','select',['Decision','Risk']],['title','Title','text'],['detail','Context / rationale','area'],['owner','Owner / decided by','text'],['region','Region','select',[['','—'],...REGIONS.map(r=>[r,r])]],
+    ['likelihood','Likelihood (risks)','select',[['','—'],...LV.map(x=>[x,x])]],['impact','Impact (risks)','select',[['','—'],...LV.map(x=>[x,x])]],['mitigation','Mitigation plan (risks)','area'],
+    ['date','Date','date'],['status','Status','select',['Open','Closed']],['initiative','Initiative','select',[['','—'],...S.initiatives.map(i=>[i.id,i.name])]]],d,x=>{
     if(!x.title.trim())return;if(id)Object.assign(d,x);else S.decisions.push({id:uid(),...x})})}
 
 /* ---------- Objectives & achievements ---------- */
@@ -354,7 +521,7 @@ function vObj(){
   return a.length?a.map(o=>{
     const p=oPct(o),open=oexp.has(o.id),pr=[...(o.progress||[])].sort((x,y)=>y.date<x.date?-1:1);
     return `<div class="card" style="margin-bottom:12px"><div class="row" style="border:0;padding:0"><div class="t clickable" onclick="objForm('${o.id}')"><b style="font-size:16px">${esc(o.title)}</b><div class="sub">${o.setBy?'Set by '+esc(o.setBy):''}${o.setDate?' · '+fmt(o.setDate):''}${o.due?' · target '+fmt(o.due):''}</div></div><span class="chip">${o.status}</span><button class="x" onclick="toggleObj('${o.id}')">${open?'▾':'▸'}</button><button class="x" onclick="delItem('objectives','${o.id}')">×</button></div>
-    <div class="pbar"><div style="width:${p}%"></div></div><div class="sub">${p}% · ${pr.length} progress update${pr.length==1?'':'s'}${o.measure?' · Success: '+esc(o.measure):''}</div>
+    <div class="pbar"><div style="width:${p}%"></div></div><div class="sub">${p}% · ${pr.length} progress update${pr.length==1?'':'s'}${(nw=>nw?` · ${nw} linked achievement${nw>1?'s':''}`:'')(S.wins.filter(w=>w.objective==o.id).length)}${['Not started','In progress','At risk'].includes(o.status)&&ageDays(pr[0]?.date||o.setDate)>=30?` · <span class="warn">no progress logged in ${ageDays(pr[0]?.date||o.setDate)} days</span>`:''}${o.measure?' · Success: '+esc(o.measure):''}</div>
     ${open?`<div class="detail" style="margin:12px 0 0">${o.desc?`<pre class="n" style="margin-bottom:10px">${esc(o.desc)}</pre>`:''}<div class="quick"><input id="po_${o.id}" placeholder="Progress update: what you did, evidence, outcome…" onkeydown="if(event.key=='Enter')addProg('${o.id}')"><input id="pp_${o.id}" type="number" min="0" max="100" placeholder="%" style="flex:none;width:70px"><button class="btn sm" onclick="addProg('${o.id}')">Add</button></div>${pr.map(x=>`<div class="cm"><span class="sub">${fmt(x.date)}${hasP(x)?' · '+x.pct+'%':''}</span> ${esc(x.text)}</div>`).join('')||'<div class="sub">No progress logged yet.</div>'}</div>`:''}</div>`}).join('')
   :'<div class="empty">Log the objectives your manager has set, then track progress against them.</div>'}
 function toggleObj(id){oexp.has(id)?oexp.delete(id):oexp.add(id);renderView()}
@@ -371,11 +538,13 @@ function vWins(){
   const ks=Object.keys(g).sort().reverse();
   const oname=id=>(S.objectives.find(o=>o.id==id)||{}).title||'';
   return ks.length?ks.map(k=>`<div class="group">${k=='0000-00'?'Undated':new Date(k+'-01T00:00').toLocaleDateString(undefined,{month:'long',year:'numeric'})} · ${g[k].length}</div><div class="card">${g[k].sort((x,y)=>y.date<x.date?-1:1).map(w=>`<div class="row"><div class="t clickable" onclick="winForm('${w.id}')"><b>${esc(w.title)}</b><div class="sub">${fmt(w.date)} ${w.category?`<span class="chip">${esc(w.category)}</span>`:''}${w.objective?`<span class="chip tag">${esc(oname(w.objective))}</span>`:''}</div>${w.impact?`<div style="margin-top:4px"><b>Impact:</b> ${esc(w.impact)}</div>`:''}${w.desc?`<div class="sub" style="margin-top:4px">${esc(w.desc)}</div>`:''}${w.evidence?`<div class="sub" style="margin-top:4px">Evidence: ${/^https?:\/\//.test(w.evidence)?`<a href="${esc(w.evidence)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--pink)">${esc(w.evidence)}</a>`:esc(w.evidence)}</div>`:''}</div><button class="x" onclick="delItem('wins','${w.id}')">×</button></div>`).join('')}</div>`).join('')
-  :'<div class="empty">Record notable achievements as they happen. Numbers and outcomes make them far stronger later.</div>'}
-function winForm(id){
-  const w=id?S.wins.find(x=>x.id==id):{id:'',title:'',date:today(),category:'Delivery',objective:'',impact:'',desc:'',evidence:''};
+  :'<div class="empty">Record notable achievements as they happen, or open a completed task and click “Log as achievement”. Numbers and outcomes make them far stronger later.</div>'}
+function winFromTask(id){const t=S.tasks.find(x=>x.id==id);if(t.winId&&S.wins.some(w=>w.id==t.winId))return winForm(t.winId);
+  winForm(null,{title:t.title,date:t.doneAt||today(),desc:[t.notes,...(t.updates||[]).filter(u=>!u.sys).map(u=>u.text)].filter(Boolean).join('\n'),taskId:t.id})}
+function winForm(id,pre){
+  const w=id?S.wins.find(x=>x.id==id):{id:'',title:'',date:today(),category:'Delivery',objective:'',impact:'',desc:'',evidence:'',...(pre||{})};
   form(id?'Edit achievement':'New achievement',[['title','Achievement','text'],['date','Date','date'],['category','Category','select',CATS],['objective','Linked objective','select',[['','—'],...S.objectives.map(o=>[o.id,o.title])]],['impact','Impact / result (numbers help)','text'],['desc','What you did','area'],['evidence','Evidence or link (optional)','text']],w,d=>{
-    if(!d.title.trim())return;if(id)Object.assign(w,d);else S.wins.push({id:uid(),...d})})}
+    if(!d.title.trim())return;if(id)Object.assign(w,d);else{const nw={id:uid(),...d,taskId:pre&&pre.taskId||''};S.wins.push(nw);const t=nw.taskId&&S.tasks.find(x=>x.id==nw.taskId);if(t)t.winId=nw.id;setTimeout(()=>toast('Achievement logged for your promotion case'),0)}})}
 function summaryText(y){
   const inY=d=>y=='All'||(d||'').startsWith(y);
   const objs=S.objectives.filter(o=>inY(o.setDate)||(o.progress||[]).some(p=>inY(p.date)));
@@ -398,15 +567,27 @@ function copySum(){try{navigator.clipboard.writeText(summaryText(sumYear)).then(
 function dlSum(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([summaryText(sumYear)],{type:'text/plain'}));a.download=`promotion-case-${sumYear}.txt`;a.click()}
 
 /* ---------- People ---------- */
-function lastTouch(p){const d=S.meetings.filter(m=>(m.attendees||'').toLowerCase().includes(p.name.toLowerCase())).map(m=>m.date).sort().pop();return d||''}
+let ptab='';
+const meetsOf=p=>S.meetings.filter(m=>(m.attendees||'').toLowerCase().includes(p.name.toLowerCase()));
+function lastTouch(p){return meetsOf(p).filter(m=>m.date<=today()).map(m=>m.date).sort().pop()||''}
+const nextMeet=p=>meetsOf(p).filter(m=>m.date>=today()).sort((a,b)=>mkey(a)<mkey(b)?-1:1)[0];
+const tasksOf=p=>{const fn=p.name.trim().split(/\s+/)[0].toLowerCase(),re=new RegExp('\\b'+fn.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b');
+  return S.tasks.filter(t=>{const x=(t.title+' '+(t.notes||'')).toLowerCase();return !t.done&&(x.includes(p.name.toLowerCase())||(fn.length>=3&&re.test(x)))})};
 function vPeople(){
-  const a=S.people.filter(match).sort((x,y)=>x.name.localeCompare(y.name));
-  return `<div class="grid">`+(a.length?a.map(p=>{const lt=lastTouch(p),n=S.meetings.filter(m=>(m.attendees||'').toLowerCase().includes(p.name.toLowerCase())).length;
-    return `<div class="card clickable" onclick="personForm('${p.id}')"><b style="font-size:15px">${esc(p.name)}</b><div class="sub">${esc(p.role||'')}</div><div class="sub" style="margin-top:8px">${n} meetings ${lt?'· last '+fmt(lt):''}</div>${p.notes?`<div style="margin-top:8px">${esc(p.notes.slice(0,120))}</div>`:''}</div>`}).join(''):'<div class="empty">People appear here automatically from meeting attendees, or add them manually.</div>')+`</div>`}
+  const a=S.people.filter(match).filter(p=>!ptab||(ptab=='none'?!p.region:p.region==ptab)).sort((x,y)=>x.name.localeCompare(y.name));
+  const tabs=[['','All · '+S.people.length],...REGIONS.map(r=>[r,r+' · '+S.people.filter(p=>p.region==r).length]),['none','No region']];
+  return `<div class="tabs">${tabs.map(([k,l])=>`<button class="btn ${ptab==k?'on':''}" onclick="ptab='${k}';renderView()">${l}</button>`).join('')}</div><div class="grid">`+(a.length?a.map(p=>{
+    const lt=lastTouch(p),nm=nextMeet(p),n=meetsOf(p).length,ot=tasksOf(p).length;
+    return `<div class="card clickable" onclick="personForm('${p.id}')"><div style="display:flex;gap:10px;align-items:center"><div class="av">${esc(p.name.split(/\s+/).map(s=>s[0]).slice(0,2).join('').toUpperCase())}</div><div style="flex:1;min-width:0"><b style="font-size:15px">${esc(p.name)}</b><div class="sub">${esc(p.role||'')}</div></div>${p.region?`<span class="chip">${esc(p.region)}</span>`:''}</div>
+    <div class="sub" style="margin-top:10px">${n} meeting${n==1?'':'s'}${lt?' · last '+fmt(lt):''}${nm?' · next '+fmt(nm.date):''}${ot?` · ${ot} open task${ot>1?'s':''}`:''}</div>
+    ${p.email?`<div class="sub"><a href="mailto:${esc(p.email)}" onclick="event.stopPropagation()" style="color:var(--pink)">${esc(p.email)}</a></div>`:''}
+    ${p.notes?`<div style="margin-top:8px">${esc(p.notes.slice(0,120))}</div>`:''}</div>`}).join(''):'<div class="empty">People appear here automatically from meeting attendees, or add them manually.</div>')+`</div>`}
 function personForm(id){
-  const p=id?S.people.find(x=>x.id==id):{id:'',name:'',role:'',notes:''};
-  form(id?'Edit person':'New person',[['name','Name','text'],['role','Role / org','text'],['notes','Notes (preferences, context)','area']],p,d=>{
-    if(!d.name.trim())return;if(id)Object.assign(p,d);else S.people.push({id:uid(),...d})},id?()=>{if(confirm('Delete person?')){S.people=S.people.filter(x=>x.id!=id);save();render();closeM()}}:null)}
+  const p=id?S.people.find(x=>x.id==id):{id:'',name:'',role:'',region:'',email:'',notes:''};
+  form(id?esc(p.name):'New person',[['name','Name','text'],['role','Role / office','text'],['region','Region','select',[['','—'],...REGIONS.map(r=>[r,r])]],['email','Email','text'],['notes','Notes (preferences, context, history)','area']],p,d=>{
+    if(!d.name.trim())return;if(id)Object.assign(p,d);else S.people.push({id:uid(),...d})},id?()=>{const k=S.people.findIndex(x=>x.id==id),[it]=S.people.splice(k,1);save();closeM();render();toast('Person deleted',()=>{S.people.splice(k,0,it);save();render()})}:null);
+  if(id){const ms=meetsOf(p).sort((a,b)=>mkey(b)<mkey(a)?-1:1).slice(0,8),ts=tasksOf(p);
+    $('#modal .acts').insertAdjacentHTML('beforebegin',`<div class="dsec">Meetings</div>${ms.length?ms.map(m=>`<div class="mt"><span class="tt clickable" onclick="meetingForm('${m.id}')">${esc(m.title)}</span><span class="sub">${fmt(m.date)}</span></div>`).join(''):'<div class="sub">None yet.</div>'}<div class="dsec">Open tasks mentioning ${esc(p.name)}</div>${ts.length?ts.map(t=>`<div class="mt"><span class="tt clickable" onclick="taskForm('${t.id}')">${esc(t.title)}</span><span class="sub">${t.status}</span></div>`).join(''):'<div class="sub">None.</div>'}`)}}
 
 /* ---------- Generic form modal ---------- */
 function form(title,fields,data,onSave,onDel){
@@ -437,8 +618,18 @@ function closeM(){$('#modal').innerHTML=''}
 document.addEventListener('keydown',e=>{if(e.key=='Escape')closeM()});
 
 /* ---------- Backup ---------- */
-function exportData(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));a.download=`workspace-backup-${today()}.json`;a.click()}
-function importData(el){const f=el.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(confirm('Replace current data with this backup?')){S=Object.assign(S,d);save();render()}}catch(e){alert('Invalid backup file')}};r.readAsText(f)}
+function exportData(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));a.download=`cob-workspace-backup-${today()}.json`;a.click();S.lastBackup=today();save();render();toast('Backup downloaded – keep it somewhere safe (e.g. OneDrive / Drive)')}
+function importData(el){const f=el.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(confirm('Replace current data with this backup?')){S=Object.assign(S,d);migrate();save();render();toast('Backup restored')}}catch(e){alert('Invalid backup file')}};r.readAsText(f);el.value=''}
+
+/* ---------- Toast, shortcuts ---------- */
+let toastT;
+function toast(msg,undo){const el=$('#toast');el.innerHTML=`<span>${esc(msg)}</span>${undo?'<button class="btn sm pink" id="undo">Undo</button>':''}`;el.className='show';
+  if(undo)$('#undo').onclick=()=>{undo();el.className=''};clearTimeout(toastT);toastT=setTimeout(()=>el.className='',undo?7000:3000)}
+document.addEventListener('keydown',e=>{
+  const tg=e.target.tagName;if(['INPUT','TEXTAREA','SELECT'].includes(tg)||$('#modal').innerHTML||e.metaKey||e.ctrlKey||e.altKey)return;
+  if(e.key=='n'||e.key=='N'){e.preventDefault();taskForm(view=='ceo'?{ceo:true}:undefined)}
+  else if(e.key=='/'){e.preventDefault();$('#srch')?.focus()}});
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 
 render();
 </script>
