@@ -117,6 +117,10 @@ pre.n{white-space:pre-wrap;font:inherit;margin:6px 0 0;color:var(--ink)}
 button.chip{border:0;cursor:pointer;font:inherit;font-size:11px}
 .chip.sevHigh{background:#D6334A;color:#fff}.chip.sevMedium{background:#E8A317;color:#fff}.chip.sevLow{background:#1E9E6A22;color:var(--ok)}
 .av{width:36px;height:36px;border-radius:50%;background:var(--grad);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex:none}
+.chip.partner{background:#7A3FD1;color:#fff}.btn.violet{background:#7A3FD1}.btn.ok{background:var(--ok)}
+.trow.partner,.row.partner-row,.partner-card{box-shadow:inset 3px 0 0 #7A3FD1}.trow.partner .row,.row.partner-row{padding-left:10px}
+.hero.partner{border-color:#7A3FD1}.hero.partner h3{color:#7A3FD1}
+.chip.Delivered{background:#1E9E6A22;color:var(--ok)}.concl{border:2px solid var(--ok)}.concl h3{color:var(--ok)}
 @media(max-width:760px){.app{grid-template-columns:1fr}aside{position:static;height:auto;flex-direction:row;flex-wrap:wrap;padding:10px}aside h1{width:100%;margin-bottom:6px}.nav{width:auto;padding:6px 10px}.sp{display:none}main{padding:16px}.side-note{display:none}}
 </style>
 </head>
@@ -145,21 +149,22 @@ function load(){try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
   migrate()}
 function migrate(){
   ['tasks','meetings','initiatives','updates','decisions','people','objectives','wins'].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});if(!Array.isArray(S.tags))S.tags=[];
+  S.initiatives.forEach(i=>{if(i.status=='Done')i.status='Delivered'});
   S.tasks.forEach(t=>{t.checklist=t.checklist||[];t.priority=({High:'High',Medium:'Medium',Low:'Low'})[t.priority]||'Medium';t.region=t.region||'Group';t.tags=t.tags||[];t.updates=t.updates||[];t.status=t.status||(t.done?'Completed':'Not started')});
   S.meetings.forEach(m=>{if(!Array.isArray(m.actions))m.actions=String(m.actions||'').split('\n').filter(Boolean).map(l=>({id:uid(),title:l,taskId:'legacy'}))})}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 load();
 
 let view='dash',q='',tab='open',openInit=null;
-const NAV=[['dash','◎','Dashboard'],['week','☑','Tasks'],['ceo','★','CEO'],['done','✔','Completed'],['meetings','✎','Meetings'],['inits','◆','Initiatives'],['dr','⚖','Decisions & Risks'],['dev','▲','Objectives & Wins'],['people','☺','People']];
+const NAV=[['dash','◎','Dashboard'],['week','☑','Tasks'],['ceo','★','CEO'],['partner','✦','Partners'],['done','✔','Completed'],['meetings','✎','Meetings'],['inits','◆','Initiatives'],['dev','▲','Objectives & Wins'],['people','☺','People']];
 
 function go(v){view=v;q='';openInit=null;render()}
 function render(){
   document.documentElement.dataset.theme=S.theme;
   const open=S.tasks.filter(t=>!t.done);
   $('#side').innerHTML=`<h1>COB's <span>Workspace</span></h1>`+NAV.map(([k,i,l])=>{
-    let n='',hot=false;if(k=='week')n=open.length;if(k=='ceo'){n=open.filter(t=>t.ceo).length;hot=open.some(t=>t.ceo&&needsAttn(t))}
-    return `<button class="nav ${view==k?'on':''} ${k=='ceo'?'navceo':''}" onclick="go('${k}')"><span>${i}</span>${l}${n?`<span class="n ${hot?'hot':''}" ${hot?'title="CEO items need attention"':''}>${n}</span>`:''}</button>`}).join('')+
+    let n='',hot=false;if(k=='week')n=open.length;if(k=='ceo'||k=='partner'){n=open.filter(t=>t[k]).length;hot=open.some(t=>t[k]&&needsAttn(t))}
+    return `<button class="nav ${view==k?'on':''} ${k=='ceo'?'navceo':''}" onclick="go('${k}')"><span>${i}</span>${l}${n?`<span class="n ${hot?'hot':''}" ${hot?'title="Items need attention"':''}>${n}</span>`:''}</button>`}).join('')+
     `<div class="sp"></div>
     <button class="nav" onclick="exportData()">⇩ Export backup</button>
     <button class="nav" onclick="$('#imp').click()">⇧ Import backup</button>
@@ -167,12 +172,12 @@ function render(){
     <div class="side-note">${S.lastBackup?'Last backup '+fmt(S.lastBackup):'Not backed up yet'}<br>Shortcuts: <b>N</b> new task · <b>/</b> search</div>
     <input type="file" id="imp" hidden accept=".json" onchange="importData(this)">`;
   const title=Object.fromEntries(NAV.map(n=>[n[0],n[2]]))[view];
-  const addBtn={dev:[dtab=='wins'?'+ Achievement':'+ Objective',()=>dtab=='wins'?'winForm()':'objForm()'],week:['+ Task',()=>"taskForm()"],ceo:['+ CEO task',()=>"taskForm({ceo:true})"],meetings:['+ Meeting',()=>"meetingForm()"],inits:['+ Initiative',()=>"initForm()"],dr:['+ Entry',()=>"drForm()"],people:['+ Person',()=>"personForm()"]}[view];
+  const addBtn={dev:[dtab=='wins'?'+ Achievement':'+ Objective',()=>dtab=='wins'?'winForm()':'objForm()'],week:['+ Task',()=>"taskForm()"],ceo:['+ CEO task',()=>"taskForm({ceo:true})"],meetings:['+ Meeting',()=>"meetingForm()"],inits:['+ Initiative',()=>"initForm()"],partner:['+ Partner task',()=>"taskForm({partner:true})"],people:['+ Person',()=>"personForm()"]}[view];
   $('#top').innerHTML=`<h2>${title}</h2><input type="search" id="srch" placeholder="Search this page  ( / )" value="${esc(q)}" oninput="q=this.value;renderView()">`+(addBtn?`<button class="btn pink" onclick="${addBtn[1]()}">${addBtn[0]}</button>`:'');
   renderView();
 }
 function renderView(){
-  const v={dash:vDash,week:vTasks,ceo:vCEO,done:vDone,meetings:vMeetings,inits:vInits,dr:vDR,dev:vDev,people:vPeople}[view];
+  const v={dash:vDash,week:vTasks,ceo:vCEO,partner:vPartner,done:vDone,meetings:vMeetings,inits:vInits,dev:vDev,people:vPeople}[view];
   $('#view').innerHTML=openInit?vInitDetail():v();
   document.querySelectorAll('#view .chip').forEach(c=>{const k=c.textContent.trim().replace(/\s+/g,'-');if(k)try{c.classList.add(k)}catch(e){}});
 }
@@ -184,7 +189,7 @@ const initColor=id=>(S.initiatives.find(i=>i.id==id)||{}).color||'#0A1F5C';
 const REGIONS=['MENA','India','SEA','Group'],PRIOS=['Low','Medium','High'],STATUSES=['Not started','Ongoing','Delayed','On hold','Waiting on others','Completed'];
 const prank={High:0,Medium:1,Low:2,'':3};
 let exp=new Set(),fv={region:'',tag:'',status:''},grp='due';
-const newTask=o=>({id:uid(),title:'',ceo:false,region:'Group',priority:'Medium',status:'Not started',due:'',tags:[],initiative:'',notes:'',updates:[],checklist:[],done:false,doneAt:null,created:today(),...o});
+const newTask=o=>({id:uid(),title:'',ceo:false,partner:false,region:'Group',priority:'Medium',status:'Not started',due:'',tags:[],initiative:'',notes:'',updates:[],checklist:[],done:false,doneAt:null,created:today(),...o});
 const applyF=t=>(!fv.region||t.region==fv.region)&&(!fv.tag||(t.tags||[]).includes(fv.tag))&&(!fv.status||(t.status||'Not started')==fv.status);
 const lastAct=t=>(t.updates||[]).map(x=>x.date).sort().pop()||t.created||'';
 const ageDays=s=>s?Math.round((new Date(today()+'T00:00')-new Date(s+'T00:00'))/864e5):null;
@@ -192,17 +197,18 @@ const isOD=t=>!t.done&&t.due&&t.due<today();
 const isStale=t=>!t.done&&ageDays(lastAct(t))>=7;
 const needsAttn=t=>!t.done&&(isOD(t)||['Delayed','On hold'].includes(t.status)||isStale(t));
 const dueKey=t=>t.due||'9999';
-const tsort=a=>a.sort((x,y)=>(y.ceo?1:0)-(x.ceo?1:0)||prank[x.priority||'']-prank[y.priority||'']||(dueKey(x)<dueKey(y)?-1:dueKey(x)>dueKey(y)?1:0));
+const vip=t=>t.ceo?2:t.partner?1:0;
+const tsort=a=>a.sort((x,y)=>vip(y)-vip(x)||prank[x.priority||'']-prank[y.priority||'']||(dueKey(x)<dueKey(y)?-1:dueKey(x)>dueKey(y)?1:0));
 function miniRow(t){
-  return `<div class="row ${t.ceo?'ceo-row':''}"><input type="checkbox" onchange="toggle('${t.id}')" title="Mark complete"><div class="t clickable" onclick="taskForm('${t.id}')"><b>${esc(t.title)}</b></div>${t.priority=='High'?'<span class="dot" title="High priority"></span>':''}${t.due?`<span class="sub ${isOD(t)?'od':''}">${fmt(t.due)}</span>`:''}</div>`}
+  return `<div class="row ${t.ceo?'ceo-row':t.partner?'partner-row':''}"><input type="checkbox" onchange="toggle('${t.id}')" title="Mark complete"><div class="t clickable" onclick="taskForm('${t.id}')"><b>${esc(t.title)}</b></div>${t.priority=='High'?'<span class="dot" title="High priority"></span>':''}${t.due?`<span class="sub ${isOD(t)?'od':''}">${fmt(t.due)}</span>`:''}</div>`}
 function taskRow(t){
   const o=exp.has(t.id),n=(t.updates||[]).filter(u=>!u.sys).length,cl=t.checklist||[],cd=cl.filter(c=>c.done).length;
-  const st=t.ceo&&isStale(t)?` · <span class="warn">no update in ${ageDays(lastAct(t))}d</span>`:'';
-  return `<div class="trow ${t.ceo?'ceo':''}"><div class="row ${t.done?'done':''}">
+  const st=(t.ceo||t.partner)&&isStale(t)?` · <span class="warn">no update in ${ageDays(lastAct(t))}d</span>`:'';
+  return `<div class="trow ${t.ceo?'ceo':t.partner?'partner':''}"><div class="row ${t.done?'done':''}">
   <input type="checkbox" ${t.done?'checked':''} onchange="toggle('${t.id}')" title="${t.done?'Reopen':'Mark complete'}">
   <button class="x" title="Status, checklist & updates" onclick="toggleExp('${t.id}')">${o?'▾':'▸'}</button>
   <div class="t clickable" onclick="toggleExp('${t.id}')"><b>${esc(t.title)}</b><div class="sub">
-  ${t.ceo?'<span class="chip ceo">CEO</span>':''}${t.region?`<span class="chip">${esc(t.region)}</span>`:''}${t.priority?`<span class="chip">${t.priority}</span>`:''}<span class="chip">${t.status||'Not started'}</span>
+  ${t.ceo?'<span class="chip ceo">CEO</span>':''}${t.partner?'<span class="chip partner">Partner</span>':''}${t.region?`<span class="chip">${esc(t.region)}</span>`:''}${t.priority?`<span class="chip">${t.priority}</span>`:''}<span class="chip">${t.status||'Not started'}</span>
   ${(t.tags||[]).map(g=>`<span class="chip tag">#${esc(g)}</span>`).join('')}${t.initiative?`<span class="chip">${esc(initName(t.initiative))}</span>`:''}
   ${t.due?`<span class="${isOD(t)?'od':''}">${isOD(t)?'Overdue · ':''}${fmt(t.due)}</span>`:''}${cl.length?` · ☑ ${cd}/${cl.length}`:''}${t.done&&t.doneAt?` · completed ${fmt(t.doneAt)}`:''}${n?` · ${n} update${n>1?'s':''}`:''}${t.winId?' · ★ achievement':''}${st}</div></div>
   <button class="x" title="Edit" onclick="taskForm('${t.id}')">✎</button><button class="x" title="Delete" onclick="delItem('tasks','${t.id}')">×</button></div>${o?taskDetail(t):''}</div>`}
@@ -226,10 +232,10 @@ function addCl(id){const i=$('#cl_'+id);if(!i.value.trim())return;const t=S.task
 function togCl(id,cid){const c=S.tasks.find(t=>t.id==id).checklist.find(c=>c.id==cid);c.done=!c.done;save();renderView()}
 function delCl(id,cid){const t=S.tasks.find(t=>t.id==id);t.checklist=t.checklist.filter(c=>c.id!=cid);save();renderView()}
 function delItem(k,id){const i=S[k].findIndex(x=>x.id==id);if(i<0)return;const [it]=S[k].splice(i,1);save();render();toast('Deleted',()=>{S[k].splice(i,0,it);save();render()})}
-function quickAdd(ceoPage){const i=$('#qa');if(!i.value.trim())return;
-  S.tasks.push(newTask({title:i.value.trim(),ceo:ceoPage||!!$('#qc')?.checked,region:$('#qr').value,priority:$('#qp').value,due:$('#qd').value}));save();render();$('#qa').focus()}
-function quickBar(ceoPage){
-  return `<div class="quick qa"><input id="qa" placeholder="${ceoPage?'Add a CEO task and press Enter':'Add a task and press Enter'}" onkeydown="if(event.key=='Enter')quickAdd(${ceoPage})"><select id="qr" title="Region">${REGIONS.map(r=>`<option ${r=='Group'?'selected':''}>${r}</option>`).join('')}</select><select id="qp" title="Priority">${PRIOS.map(p=>`<option ${p=='Medium'?'selected':''}>${p}</option>`).join('')}</select><input id="qd" type="date" title="Due date (optional)">${ceoPage?'':'<label class="sub qc"><input type="checkbox" id="qc"> CEO</label>'}<button class="btn" onclick="quickAdd(${ceoPage})">Add</button></div>`}
+function quickAdd(aud){const i=$('#qa');if(!i.value.trim())return;
+  S.tasks.push(newTask({title:i.value.trim(),ceo:aud=='ceo'||!!$('#qc')?.checked,partner:aud=='partner'||!!$('#qpt')?.checked,region:$('#qr').value,priority:$('#qp').value,due:$('#qd').value}));save();render();$('#qa').focus()}
+function quickBar(aud){
+  return `<div class="quick qa"><input id="qa" placeholder="${aud?'Add a '+AUD[aud].label+' task and press Enter':'Add a task and press Enter'}" onkeydown="if(event.key=='Enter')quickAdd('${aud}')"><select id="qr" title="Region">${REGIONS.map(r=>`<option ${r=='Group'?'selected':''}>${r}</option>`).join('')}</select><select id="qp" title="Priority">${PRIOS.map(p=>`<option ${p=='Medium'?'selected':''}>${p}</option>`).join('')}</select><input id="qd" type="date" title="Due date (optional)">${aud?'':'<label class="sub qc"><input type="checkbox" id="qc"> CEO</label><label class="sub qc"><input type="checkbox" id="qpt"> Partner</label>'}<button class="btn" onclick="quickAdd('${aud}')">Add</button></div>`}
 function filterBar(withGroup){
   const sel=(k,all,opts)=>`<select onchange="fv.${k}=this.value;renderView()"><option value="">${all}</option>${opts.map(o=>`<option ${fv[k]==o?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
   const G=[['due','Group by: Due date'],['region','Group by: Region'],['priority','Group by: Priority'],['status','Group by: Status'],['initiative','Group by: Initiative']];
@@ -252,7 +258,7 @@ function groupTasks(open){
   return [['Overdue',open.filter(t=>t.due&&t.due<t0),'od'],['Today',open.filter(t=>t.due==t0)],['Rest of this week',open.filter(t=>t.due>t0&&t.due<=we)],['Later',open.filter(t=>t.due>we)],['No due date',open.filter(t=>!t.due)]]}
 function vTasks(){
   const open=S.tasks.filter(t=>!t.done&&match(t)&&applyF(t)),nd=S.tasks.filter(t=>t.done).length;
-  let h=quickBar(false)+filterBar(true);
+  let h=quickBar('')+filterBar(true);
   groupTasks(open).forEach(([n,a,c])=>{if(a.length)h+=`<div class="group ${c||''}">${esc(n)} · ${a.length}</div><div class="card">${tsort(a).map(taskRow).join('')}</div>`});
   if(!open.length)h+=`<div class="empty">${S.tasks.some(t=>!t.done)?'Nothing matches these filters.':'No open tasks. Add one above.'}</div>`;
   if(nd)h+=`<div class="sub" style="margin-top:18px">${nd} completed task${nd>1?'s':''} · <a href="#" onclick="go('done');return false" style="color:var(--pink)">view the Completed archive</a></div>`;
@@ -261,47 +267,50 @@ function vDone(){
   const a=S.tasks.filter(t=>t.done&&match(t)&&applyF(t)),g={};
   a.forEach(t=>{const k=(t.doneAt||'0000-00').slice(0,7);(g[k]=g[k]||[]).push(t)});
   const ks=Object.keys(g).sort().reverse(),m0=today().slice(0,7),tm=S.tasks.filter(t=>t.done&&(t.doneAt||'').startsWith(m0));
-  const sum=`<div class="card" style="margin-bottom:10px"><div class="herow"><div><div class="stat">${tm.length}</div><div class="sub">completed this month</div></div><div><div class="stat">${tm.filter(t=>t.ceo).length}</div><div class="sub">CEO items</div></div>${REGIONS.map(r=>`<div><div class="stat sm">${tm.filter(t=>t.region==r).length}</div><div class="sub">${r}</div></div>`).join('')}<div><div class="stat sm">${S.tasks.filter(t=>t.done).length}</div><div class="sub">all time</div></div></div></div>`;
+  const sum=`<div class="card" style="margin-bottom:10px"><div class="herow"><div><div class="stat">${tm.length}</div><div class="sub">completed this month</div></div><div><div class="stat">${tm.filter(t=>t.ceo).length}</div><div class="sub">CEO items</div></div><div><div class="stat">${tm.filter(t=>t.partner).length}</div><div class="sub">Partner items</div></div>${REGIONS.map(r=>`<div><div class="stat sm">${tm.filter(t=>t.region==r).length}</div><div class="sub">${r}</div></div>`).join('')}<div><div class="stat sm">${S.tasks.filter(t=>t.done).length}</div><div class="sub">all time</div></div></div></div>`;
   return sum+filterBar()+(ks.length?ks.map(k=>`<div class="group">${k=='0000-00'?'Earlier':new Date(k+'-01T00:00').toLocaleDateString(undefined,{month:'long',year:'numeric'})} · ${g[k].length}</div><div class="card">${g[k].sort((x,y)=>(y.doneAt||'')<(x.doneAt||'')?-1:1).map(taskRow).join('')}</div>`).join(''):'<div class="empty">Completed tasks are archived here, grouped by month.</div>')}
 function taskForm(arg){
   const t=typeof arg=='string'?S.tasks.find(x=>x.id==arg):newTask({id:'',...(arg||{})});
   form(t.id?'Edit task':'New task',[
     ['title','Task','text'],['region','Region','select',REGIONS],['priority','Priority','select',PRIOS],['status','Status','select',STATUSES],
-    ['due','Due date (optional)','date'],['ceo','CEO-related (always kept visible on the CEO page)','check'],['tags','HR topic tags','tags'],
+    ['due','Due date (optional)','date'],['ceo','CEO-related (always kept visible on the CEO page)','check'],['partner','Partner-related (always kept visible on the Partners page)','check'],['tags','HR topic tags','tags'],
     ['initiative','Initiative','select',[['','—'],...S.initiatives.map(i=>[i.id,i.name])]],['notes','Notes','area']],t,
     d=>{if(!d.title.trim())return;const done=d.status=='Completed';
       if(t.id){const r=S.tasks.find(x=>x.id==t.id);if(r.status!=d.status)(r.updates=r.updates||[]).push({date:today(),text:'Status → '+d.status,sys:true});Object.assign(r,d,{done,doneAt:done?(r.doneAt||today()):null})}
       else S.tasks.push(newTask({...d,done,doneAt:done?today():null}))})}
 
-/* ---------- CEO ---------- */
-function vCEO(){
-  const open=S.tasks.filter(t=>t.ceo&&!t.done&&match(t)&&applyF(t));
+/* ---------- CEO & Partners (same engine) ---------- */
+const AUD={ceo:{label:'CEO',page:'CEO',notes:'ceoNotes',brief:'lastBrief'},partner:{label:'Partner',page:'Partners',notes:'partnerNotes',brief:'lastBriefPartner'}};
+const vCEO=()=>vAud('ceo'),vPartner=()=>vAud('partner');
+function vAud(k){
+  const A=AUD[k],L=A.label;
+  const open=S.tasks.filter(t=>t[k]&&!t.done&&match(t)&&applyF(t));
   const need=open.filter(needsAttn),rest=open.filter(t=>!needsAttn(t));
   const prog=rest.filter(t=>['Ongoing','Waiting on others'].includes(t.status)),ns=rest.filter(t=>!prog.includes(t));
-  const since=S.lastBrief||'',doneSince=S.tasks.filter(t=>t.ceo&&t.done&&(!since||t.doneAt>=since));
-  const ci=S.initiatives.filter(i=>i.ceo&&i.status!='Done');
-  const nm=S.meetings.filter(m=>m.ceo&&m.date>=today()).sort((a,b)=>mkey(a)<mkey(b)?-1:1)[0];
+  const since=S[A.brief]||'',doneSince=S.tasks.filter(t=>t[k]&&t.done&&(!since||t.doneAt>=since));
+  const ci=S.initiatives.filter(i=>i[k]&&i.status!='Delivered');
+  const nm=S.meetings.filter(m=>m[k]&&m.date>=today()).sort((a,b)=>mkey(a)<mkey(b)?-1:1)[0];
   const sec=(n,a,c)=>a.length?`<div class="group ${c||''}">${n} · ${a.length}</div><div class="card">${tsort(a).map(taskRow).join('')}</div>`:'';
-  return `<div class="card hero" style="margin-bottom:14px"><div class="herow"><div><div class="stat">${S.tasks.filter(t=>t.ceo&&!t.done).length}</div><div class="sub">open CEO items</div></div>
-  <div><div class="stat ${need.length?'od':''}">${S.tasks.filter(t=>t.ceo&&needsAttn(t)).length}</div><div class="sub">need attention</div></div>
+  return `<div class="card hero ${k}" style="margin-bottom:14px"><div class="herow"><div><div class="stat">${S.tasks.filter(t=>t[k]&&!t.done).length}</div><div class="sub">open ${L} items</div></div>
+  <div><div class="stat ${need.length?'od':''}">${S.tasks.filter(t=>t[k]&&needsAttn(t)).length}</div><div class="sub">need attention</div></div>
   <div><div class="stat">${doneSince.length}</div><div class="sub">done ${since?'since last update':'so far'}</div></div>
-  <div><div class="stat sm">${since?fmt(since):'—'}</div><div class="sub">last CEO update</div></div>
-  <div class="${nm?'clickable':''}" ${nm?`onclick="meetingForm('${nm.id}')"`:''}><div class="stat sm">${nm?fmt(nm.date):'—'}</div><div class="sub">next CEO meeting${nm?'':' (tick "CEO meeting")'}</div></div>
-  <button class="btn pink" style="margin-left:auto" onclick="briefModal()">Prepare CEO update</button></div></div>`+
-  quickBar(true)+filterBar()+
+  <div><div class="stat sm">${since?fmt(since):'—'}</div><div class="sub">last ${L} update</div></div>
+  <div class="${nm?'clickable':''}" ${nm?`onclick="meetingForm('${nm.id}')"`:''}><div class="stat sm">${nm?fmt(nm.date):'—'}</div><div class="sub">next ${L} meeting${nm?'':` (tick "${L} meeting")`}</div></div>
+  <button class="btn ${k=='ceo'?'pink':'violet'}" style="margin-left:auto" onclick="briefModal('${k}')">Prepare ${L} update</button></div></div>`+
+  quickBar(k)+filterBar()+
   sec('Needs attention – overdue, delayed, on hold or no update in 7+ days',need,'od')+sec('In progress',prog)+sec('Not started',ns)+
-  (!open.length?'<div class="empty">No open CEO items.</div>':'')+
+  (!open.length?`<div class="empty">No open ${L} items. Tick "${L}-related" on any task to keep it here.</div>`:'')+
   `<div class="grid" style="margin-top:18px">
-  <div class="card"><h3>CEO initiatives <button class="btn sm ghost" onclick="go('inits')">All initiatives</button></h3>${ci.length?ci.map(i=>`<div class="row clickable" onclick="view='inits';openInit='${i.id}';render()"><div class="t"><b>${esc(i.name)}</b>${msBar(i)}</div><span class="chip">${i.status}</span></div>`).join(''):'<div class="empty">Tick "Show on CEO page" on an initiative to track it here.</div>'}</div>
-  <div class="card"><h3>Talking points for next 1:1</h3><textarea class="ta" oninput="S.ceoNotes=this.value;save()" placeholder="Running agenda, asks, FYIs…">${esc(S.ceoNotes)}</textarea></div>
+  <div class="card"><h3>${L} initiatives <button class="btn sm ghost" onclick="go('inits')">All initiatives</button></h3>${ci.length?ci.map(i=>`<div class="row clickable" onclick="view='inits';openInit='${i.id}';render()"><div class="t"><b>${esc(i.name)}</b>${msBar(i)}</div><span class="chip">${i.status}</span></div>`).join(''):`<div class="empty">Tick "Show on ${A.page} page" on an initiative to track it here.</div>`}</div>
+  <div class="card"><h3>Talking points for next meeting</h3><textarea class="ta" oninput="S.${A.notes}=this.value;save()" placeholder="Running agenda, asks, FYIs…">${esc(S[A.notes]||'')}</textarea></div>
   <div class="card"><h3>Completed ${since?'since last update':''}</h3>${doneSince.length?doneSince.map(t=>`<div class="row done"><div class="t"><b>${esc(t.title)}</b><div class="sub">${fmt(t.doneAt)}</div></div></div>`).join(''):'<div class="empty">Nothing yet.</div>'}</div></div>`}
 function lastNote(t){const u=(t.updates||[]).filter(x=>!x.sys).pop();return u?` – ${u.text} (${fmt(u.date)})`:''}
-function briefText(){
-  const since=S.lastBrief,open=S.tasks.filter(t=>t.ceo&&!t.done),L=[`CEO update – ${new Date().toLocaleDateString(undefined,{day:'numeric',month:'long',year:'numeric'})}`];
+function briefText(k){
+  const A=AUD[k],since=S[A.brief],open=S.tasks.filter(t=>t[k]&&!t.done),L=[`${A.label} update – ${new Date().toLocaleDateString(undefined,{day:'numeric',month:'long',year:'numeric'})}`];
   const lbl=t=>`${t.title} [${t.region}${t.due?', due '+fmt(t.due):''}]`;
   const sec=(h,a,f)=>{if(a.length){L.push('',h.toUpperCase());a.forEach(t=>L.push(f(t)))}};
   const flagged=['Delayed','On hold','Waiting on others'];
-  const done=S.tasks.filter(t=>t.ceo&&t.done&&(!since||t.doneAt>=since));
+  const done=S.tasks.filter(t=>t[k]&&t.done&&(!since||t.doneAt>=since));
   const risk=tsort(open.filter(t=>flagged.includes(t.status)||isOD(t)));
   const prog=tsort(open.filter(t=>t.status=='Ongoing'&&!risk.includes(t)));
   const next=tsort(open.filter(t=>!risk.includes(t)&&!prog.includes(t)));
@@ -309,18 +318,24 @@ function briefText(){
   sec('Needs attention / your input',risk,t=>`! ${lbl(t)} – ${flagged.includes(t.status)?t.status:'Overdue'}${lastNote(t)}`);
   sec('In progress',prog,t=>{const cl=t.checklist||[];return `• ${lbl(t)}${cl.length?` (${cl.filter(c=>c.done).length}/${cl.length} steps)`:''}${lastNote(t)}`});
   sec('Coming up',next,t=>`• ${lbl(t)}`);
-  const ci=S.initiatives.filter(i=>i.ceo&&i.status!='Done');
+  const dl=S.initiatives.filter(i=>i[k]&&i.status=='Delivered'&&(!since||(i.completedAt||'')>=since));
+  if(dl.length){L.push('','INITIATIVES DELIVERED');dl.forEach(i=>L.push(`✓ ${i.name}${i.outcome&&i.outcome!='Delivered'?' ('+i.outcome+')':''}${i.conclusion?' – '+i.conclusion:''}`))}
+  const ci=S.initiatives.filter(i=>i[k]&&i.status!='Delivered');
   if(ci.length){L.push('','KEY INITIATIVES');ci.forEach(i=>{const m=i.milestones||[],u=S.updates.filter(x=>x.initiative==i.id).sort((a,b)=>a.date<b.date?-1:1).pop();
     L.push(`• ${i.name} – ${i.status}${m.length?`, ${m.filter(x=>x.done).length}/${m.length} milestones`:''}${u?` – ${u.text}`:''}`)})}
-  if(S.ceoNotes&&S.ceoNotes.trim())L.push('','FOR DISCUSSION',S.ceoNotes.trim());
-  if(L.length==1)L.push('','No CEO items logged yet.');
+  const nt=S[A.notes];if(nt&&nt.trim())L.push('','FOR DISCUSSION',nt.trim());
+  if(L.length==1)L.push('',`No ${A.label} items logged yet.`);
   return L.join('\n')}
-function briefModal(){
-  $('#modal').innerHTML=`<div class="modal-bg" onmousedown="if(event.target==this)closeM()"><div class="modal"><h3>CEO update</h3><div class="sub" style="margin-bottom:8px">Built from your CEO tasks, their latest updates and CEO initiatives. Edit freely before sending.</div><textarea id="brief" class="ta" style="min-height:340px">${esc(briefText())}</textarea>
-  <div class="acts"><button class="btn ghost" style="margin-right:auto" onclick="markBriefed()" title="Next update will list completions from today">Mark as sent today</button><button class="btn ghost" onclick="closeM()">Close</button><button class="btn ghost" onclick="mailBrief()">Open in email</button><button class="btn pink" onclick="copyBrief()">Copy</button></div></div></div>`}
+function briefModal(k){
+  const A=AUD[k];
+  $('#modal').innerHTML=`<div class="modal-bg" onmousedown="if(event.target==this)closeM()"><div class="modal"><h3>${A.label} update</h3><div class="sub" style="margin-bottom:8px">Built from your ${A.label} tasks, their latest updates and ${A.label} initiatives. Edit freely before sending.</div><textarea id="brief" class="ta" style="min-height:340px">${esc(briefText(k))}</textarea>
+  <div class="acts"><button class="btn ghost" style="margin-right:auto" onclick="markBriefed('${k}')" title="Next update will list completions from today">Mark as sent today</button><button class="btn ghost" onclick="closeM()">Close</button><button class="btn ghost" onclick="mailBrief()">Open in email</button><button class="btn pink" onclick="copyBrief()">Copy</button></div></div></div>`}
 function copyBrief(){const v=$('#brief').value,fb=()=>{$('#brief').select();document.execCommand('copy');toast('Copied')};try{navigator.clipboard.writeText(v).then(()=>toast('Copied to clipboard'),fb)}catch(e){fb()}}
 function mailBrief(){location.href='mailto:?subject='+encodeURIComponent('Update – '+fmt(today()))+'&body='+encodeURIComponent($('#brief').value)}
-function markBriefed(){const prev=S.lastBrief;S.lastBrief=today();save();closeM();render();toast('Marked as sent – the next update starts from today',()=>{S.lastBrief=prev;save();render()})}
+function markBriefed(k){const b=AUD[k].brief,prev=S[b];S[b]=today();save();closeM();render();toast('Marked as sent – the next update starts from today',()=>{S[b]=prev;save();render()})}
+function audCard(k,open){
+  const A=AUD[k],a=tsort(open.filter(t=>t[k])).sort((x,y)=>needsAttn(y)-needsAttn(x)),n=a.filter(needsAttn).length,list=(x,e)=>x.length?x.map(miniRow).join(''):`<div class="empty">${e}</div>`;
+  return `<div class="card hero ${k}"><h3>${A.label} priorities <button class="btn sm ${k=='ceo'?'pink':'violet'}" onclick="briefModal('${k}')">Prepare update</button></h3><div class="sub" style="margin:-4px 0 6px">${a.length} open${n?` · <span class="od">${n} need attention</span>`:''}${S[A.brief]?` · last update ${fmt(S[A.brief])}`:''}</div>${list(a.slice(0,6),`No open ${A.label} tasks.`)}${a.length>6?`<div class="sub" style="margin-top:6px"><a href="#" onclick="go('${k}');return false" style="color:var(--pink)">+${a.length-6} more on the ${A.page} page</a></div>`:''}</div>`}
 
 /* ---------- Dashboard ---------- */
 function vDash(){
@@ -329,9 +344,8 @@ function vDash(){
   const od=open.filter(isOD),wk=open.filter(t=>t.due>=t0&&t.due<=we);
   const doneWk=S.tasks.filter(t=>t.done&&t.doneAt>=ws).length;
   const ceo=tsort(open.filter(t=>t.ceo)).sort((a,b)=>needsAttn(b)-needsAttn(a)),ceoN=ceo.filter(needsAttn).length;
-  const focus=tsort(open.filter(t=>!t.ceo&&(isOD(t)||t.due==t0||(t.priority=='High'&&(!t.due||t.due<=we))))).slice(0,8);
+  const focus=tsort(open.filter(t=>!t.ceo&&!t.partner&&(isOD(t)||t.due==t0||(t.priority=='High'&&(!t.due||t.due<=we))))).slice(0,8);
   const risky=S.initiatives.filter(i=>['At risk','Blocked'].includes(i.status));
-  const risks=S.decisions.filter(d=>d.type=='Risk'&&d.status=='Open');
   const mt=S.meetings.filter(m=>m.date>=t0).sort((a,b)=>(a.date+(a.time||''))<(b.date+(b.time||''))?-1:1).slice(0,5);
   const stale=S.people.filter(p=>lastTouch(p)&&lastTouch(p)<addDays(t0,-30));
   const list=(a,f,e)=>a.length?a.map(f).join(''):`<div class="empty">${e}</div>`;
@@ -344,13 +358,13 @@ function vDash(){
   ${stat(doneWk,'completed this week','',"go('done')")}
   ${stat(risky.length,'initiatives at risk',risky.length?'od':'',"go('inits')")}</div>
   <div class="grid" style="margin-top:16px">
-  <div class="card hero"><h3>CEO priorities <button class="btn sm pink" onclick="briefModal()">Prepare update</button></h3><div class="sub" style="margin:-4px 0 6px">${ceo.length} open${ceoN?` · <span class="od">${ceoN} need attention</span>`:''}${S.lastBrief?` · last update ${fmt(S.lastBrief)}`:''}</div>${list(ceo.slice(0,7),miniRow,'No open CEO tasks.')}${ceo.length>7?`<div class="sub" style="margin-top:6px"><a href="#" onclick="go('ceo');return false" style="color:var(--pink)">+${ceo.length-7} more on the CEO page</a></div>`:''}</div>
+  ${audCard('ceo',open)}
+  ${audCard('partner',open)}
   <div class="card"><h3>Focus now <button class="btn sm ghost" onclick="go('week')">All tasks</button></h3>${list(focus,miniRow,'Nothing urgent. Overdue, due-today and high-priority tasks show here.')}</div>
-  <div class="card"><h3>By region</h3>${REGIONS.map(r=>{const a=open.filter(t=>t.region==r),o=a.filter(isOD).length,c=a.filter(t=>t.ceo).length;
-    return `<div class="row clickable" onclick="fv={region:'${r}',tag:'',status:''};grp='due';go('week')"><div class="t"><b>${r}</b></div>${c?`<span class="chip ceo">${c} CEO</span>`:''}${o?`<span class="sub od">${o} overdue</span>`:''}<span class="cnt">${a.length}</span></div>`}).join('')}</div>
+  <div class="card"><h3>By region</h3>${REGIONS.map(r=>{const a=open.filter(t=>t.region==r),o=a.filter(isOD).length,c=a.filter(t=>t.ceo).length,pc=a.filter(t=>t.partner).length;
+    return `<div class="row clickable" onclick="fv={region:'${r}',tag:'',status:''};grp='due';go('week')"><div class="t"><b>${r}</b></div>${c?`<span class="chip ceo">${c} CEO</span>`:''}${pc?`<span class="chip partner">${pc} Partner</span>`:''}${o?`<span class="sub od">${o} overdue</span>`:''}<span class="cnt">${a.length}</span></div>`}).join('')}</div>
   <div class="card"><h3>Upcoming meetings <button class="btn sm ghost" onclick="go('meetings')">All</button></h3>${list(mt,m=>`<div class="row clickable" onclick="meetingForm('${m.id}')"><div class="t"><b>${esc(m.title)}</b><div class="sub">${fmt(m.date)}${m.time?' · '+m.time:''}</div></div></div>`,'No upcoming meetings.')}</div>
   <div class="card"><h3>Flagged initiatives</h3>${list(risky,i=>`<div class="row clickable" onclick="view='inits';openInit='${i.id}';render()"><div class="t"><b>${esc(i.name)}</b>${msBar(i)}</div><span class="chip">${i.status}</span></div>`,'All initiatives on track.')}</div>
-  <div class="card"><h3>Open risks</h3>${list(risks.slice(0,5),d=>`<div class="row clickable" onclick="drForm('${d.id}')"><div class="t"><b>${esc(d.title)}</b><div class="sub">${esc(initName(d.initiative))}</div></div></div>`,'No open risks.')}</div>
   ${stale.length?`<div class="card"><h3>Reconnect (30+ days)</h3>${list(stale,p=>`<div class="row"><div class="t"><b>${esc(p.name)}</b><div class="sub">Last: ${fmt(lastTouch(p))}</div></div></div>`,'')}</div>`:''}</div>`}
 
 /* ---------- Meetings ---------- */
@@ -371,23 +385,23 @@ function vMeetings(){
   return h}
 function meetCard(m){
   const ts=S.tasks.filter(t=>t.meetingId==m.id);
-  return `<div class="card mcard ${m.ceo?'ceo-card':''}"><div class="row" style="border:0;padding:0"><div class="mtime">${m.time||'–'}</div><div class="t clickable" onclick="meetingForm('${m.id}')"><b style="font-size:15px">${esc(m.title)}</b><div class="sub">${m.ceo?'<span class="chip ceo">CEO</span>':''}${m.cal?'<span class="chip">Calendar</span>':''}${m.initiative?`<span class="chip">${esc(initName(m.initiative))}</span>`:''}${m.attendees?esc(m.attendees.length>90?m.attendees.slice(0,90)+'…':m.attendees):''}</div></div><button class="btn sm ${m.notes?'ghost':''}" onclick="meetingForm('${m.id}')">${m.notes?'Open notes':'Add notes'}</button><button class="x" title="Delete" onclick="delItem('meetings','${m.id}')">×</button></div>
+  return `<div class="card mcard ${m.ceo?'ceo-card':m.partner?'partner-card':''}"><div class="row" style="border:0;padding:0"><div class="mtime">${m.time||'–'}</div><div class="t clickable" onclick="meetingForm('${m.id}')"><b style="font-size:15px">${esc(m.title)}</b><div class="sub">${m.ceo?'<span class="chip ceo">CEO</span>':''}${m.partner?'<span class="chip partner">Partner</span>':''}${m.cal?'<span class="chip">Calendar</span>':''}${m.initiative?`<span class="chip">${esc(initName(m.initiative))}</span>`:''}${m.attendees?esc(m.attendees.length>90?m.attendees.slice(0,90)+'…':m.attendees):''}</div></div><button class="btn sm ${m.notes?'ghost':''}" onclick="meetingForm('${m.id}')">${m.notes?'Open notes':'Add notes'}</button><button class="x" title="Delete" onclick="delItem('meetings','${m.id}')">×</button></div>
   ${m.notes?`<pre class="n mnotes">${esc(m.notes.length>400?m.notes.slice(0,400)+'…':m.notes)}</pre>`:''}
   ${ts.length?`<div class="mtasks"><div class="dsec" style="margin-top:0">Follow-up tasks</div>${ts.map(t=>`<div class="mt ${t.done?'done':''}"><span class="tt clickable" onclick="taskForm('${t.id}')">${esc(t.title)}</span><span class="chip">${t.status}</span></div>`).join('')}</div>`:''}</div>`}
 function actRow(r){r=r||{};const d=r.taskId?'disabled':'';
-  return `<div class="arow" data-id="${r.id||uid()}" data-task="${r.taskId||''}"><input class="at" placeholder="Task…" value="${esc(r.title||'')}" ${d}><select class="ar" ${d}>${REGIONS.map(x=>`<option ${x==(r.region||'Group')?'selected':''}>${x}</option>`).join('')}</select><select class="ap" ${d}>${PRIOS.map(x=>`<option ${x==(r.priority||'Medium')?'selected':''}>${x}</option>`).join('')}</select><input class="ad" type="date" title="Due (optional)" value="${r.due||''}" ${d}><label class="sub"><input class="ac" type="checkbox" ${r.ceo?'checked':''} ${d}> CEO</label>${r.taskId?'<span class="chip Completed">in tasks</span>':''}<button type="button" class="x" onclick="this.parentNode.remove()">×</button></div>`}
+  return `<div class="arow" data-id="${r.id||uid()}" data-task="${r.taskId||''}"><input class="at" placeholder="Task…" value="${esc(r.title||'')}" ${d}><select class="ar" ${d}>${REGIONS.map(x=>`<option ${x==(r.region||'Group')?'selected':''}>${x}</option>`).join('')}</select><select class="ap" ${d}>${PRIOS.map(x=>`<option ${x==(r.priority||'Medium')?'selected':''}>${x}</option>`).join('')}</select><input class="ad" type="date" title="Due (optional)" value="${r.due||''}" ${d}><label class="sub"><input class="ac" type="checkbox" ${r.ceo?'checked':''} ${d}> CEO</label><label class="sub"><input class="apt" type="checkbox" ${r.partner?'checked':''} ${d}> Partner</label>${r.taskId?'<span class="chip Completed">in tasks</span>':''}<button type="button" class="x" onclick="this.parentNode.remove()">×</button></div>`}
 function addActRow(){$('#arows').insertAdjacentHTML('beforeend',actRow({}));$('#arows .arow:last-child .at').focus()}
 function tplNotes(){const ta=$('#modal textarea[name=notes]'),T='Agenda\n- \n\nKey points\n- \n\nDecisions\n- \n\nFollow-ups (add them as tasks below)\n- ';ta.value=ta.value.trim()?ta.value+'\n\n'+T:T;ta.focus()}
 function meetingForm(id){
   const m=id?S.meetings.find(x=>x.id==id):{id:'',title:'',date:today(),time:'',attendees:'',initiative:'',ceo:false,notes:'',actions:[]};
   form(id?'Meeting notes':'New meeting',[['title','Meeting / call','text'],['date','Date','date'],['time','Time','time'],['attendees','Attendees (comma separated)','text'],
-    ['initiative','Initiative','select',[['','—'],...S.initiatives.map(i=>[i.id,i.name])]],['ceo','CEO meeting (e.g. your 1:1 with the CEO)','check'],['notes','Notes','area'],
+    ['initiative','Initiative','select',[['','—'],...S.initiatives.map(i=>[i.id,i.name])]],['ceo','CEO meeting (e.g. your 1:1 with the CEO)','check'],['partner','Partner meeting','check'],['notes','Notes','area'],
     ['actions','Tasks arising from this meeting (they move to your task list on save)','actions']],m,d=>{
     if(!d.title.trim())return;
     let rec=id?S.meetings.find(x=>x.id==id):null;
     if(!rec){rec={id:uid()};S.meetings.push(rec)}
     Object.assign(rec,d);
-    let n=0;rec.actions.forEach(r=>{if(r.taskId)return;const t=newTask({title:r.title,region:r.region,priority:r.priority,due:r.due,ceo:r.ceo||d.ceo,initiative:d.initiative,meetingId:rec.id,notes:'From: '+d.title+' ('+fmt(d.date)+')'});S.tasks.push(t);r.taskId=t.id;n++});
+    let n=0;rec.actions.forEach(r=>{if(r.taskId)return;const t=newTask({title:r.title,region:r.region,priority:r.priority,due:r.due,ceo:r.ceo||d.ceo,partner:r.partner||d.partner,initiative:d.initiative,meetingId:rec.id,notes:'From: '+d.title+' ('+fmt(d.date)+')'});S.tasks.push(t);r.taskId=t.id;n++});
     d.attendees.split(',').map(s=>s.trim()).filter(Boolean).forEach(nm=>{if(!S.people.some(p=>p.name.toLowerCase()==nm.toLowerCase()))S.people.push({id:uid(),name:nm,role:'',notes:''})});
     if(n)setTimeout(()=>toast(n+' task'+(n>1?'s':'')+' added to your task list'),0);
   });
@@ -442,7 +456,7 @@ function importICS(el){
   r.readAsText(f);el.value=''}
 
 /* ---------- Initiatives ---------- */
-const STAT=['On track','At risk','Blocked','On hold','Done'],srank={'Blocked':0,'At risk':1,'On hold':2,'On track':3,'Done':4};
+const STAT=['On track','At risk','Blocked','On hold','Delivered'],srank={'Blocked':0,'At risk':1,'On hold':2,'On track':3,'Delivered':4};
 let itab='active';
 const msP=i=>{const m=i.milestones||[];return m.length?Math.round(100*m.filter(x=>x.done).length/m.length):0};
 const msBar=i=>{const m=i.milestones||[];return m.length?`<div class="pbar" style="margin:10px 0 4px"><div style="width:${msP(i)}%"></div></div><div class="sub">${m.filter(x=>x.done).length}/${m.length} milestones · ${msP(i)}%</div>`:''};
@@ -454,59 +468,48 @@ function renMs(id,mid){const m=S.initiatives.find(x=>x.id==id).milestones.find(x
 function delMs(id,mid){const i=S.initiatives.find(x=>x.id==id),k=i.milestones.findIndex(x=>x.id==mid),[it]=i.milestones.splice(k,1);save();renderView();toast('Milestone deleted',()=>{i.milestones.splice(k,0,it);save();renderView()})}
 function vInits(){
   let a=S.initiatives.filter(match);
-  const nA=S.initiatives.filter(i=>i.status!='Done').length,nD=S.initiatives.length-nA;
-  if(itab=='active')a=a.filter(i=>i.status!='Done');else if(itab=='done')a=a.filter(i=>i.status=='Done');
+  const nA=S.initiatives.filter(i=>i.status!='Delivered').length,nD=S.initiatives.length-nA;
+  if(itab=='active')a=a.filter(i=>i.status!='Delivered');else if(itab=='done')a=a.filter(i=>i.status=='Delivered');
   a.sort((x,y)=>(srank[x.status]??5)-(srank[y.status]??5)||(x.name||'').localeCompare(y.name||''));
-  const tabs=[['active',`Active · ${nA}`],['done',`Done · ${nD}`],['all','All']];
+  const tabs=[['active',`Active · ${nA}`],['done',`Delivered · ${nD}`],['all','All']];
   return `<div class="tabs">${tabs.map(([k,l])=>`<button class="btn ${itab==k?'on':''}" onclick="itab='${k}';renderView()">${l}</button>`).join('')}</div><div class="grid">`+(a.length?a.map(i=>{
     const nm=nextMs(i),lu=lastUpd(i),age=ageDays(lu),nt=S.tasks.filter(t=>t.initiative==i.id&&!t.done).length,odm=(i.milestones||[]).filter(m=>!m.done&&m.due&&m.due<today()).length;
     const ups=S.updates.filter(u=>u.initiative==i.id).sort((x,y)=>y.date<x.date?-1:1);
-    return `<div class="card clickable" onclick="openInit='${i.id}';render()"><div class="bar" style="background:${i.color||'#0A1F5C'}"></div><div style="display:flex;gap:8px;align-items:center"><b style="font-size:16px;flex:1">${esc(i.name)}</b>${i.ceo?'<span class="chip ceo">CEO</span>':''}<span class="chip">${i.status}</span></div>
+    return `<div class="card clickable" onclick="openInit='${i.id}';render()"><div class="bar" style="background:${i.color||'#0A1F5C'}"></div><div style="display:flex;gap:8px;align-items:center"><b style="font-size:16px;flex:1">${esc(i.name)}</b>${i.ceo?'<span class="chip ceo">CEO</span>':''}${i.partner?'<span class="chip partner">Partner</span>':''}<span class="chip">${i.status}</span></div>
     <div class="sub">${[i.owner&&esc(i.owner),i.region&&esc(i.region),i.target&&'target '+fmt(i.target),nt+' open task'+(nt==1?'':'s')].filter(Boolean).join(' · ')}</div>${msBar(i)}
-    ${nm?`<div class="sub" style="margin-top:6px">Next milestone: <b>${esc(nm.title)}</b>${nm.due?` · <span class="${nm.due<today()?'od':''}">${fmt(nm.due)}</span>`:''}${odm>1?` · <span class="od">${odm} overdue</span>`:''}</div>`:''}
+    ${i.status=='Delivered'?`<div class="sub" style="margin-top:10px"><span class="chip Completed">✔ ${esc(i.outcome||'Delivered')}</span>${i.completedAt?fmt(i.completedAt):''}</div>${i.conclusion?`<div style="margin-top:8px">${esc(i.conclusion.length>160?i.conclusion.slice(0,160)+'…':i.conclusion)}</div>`:''}`:`${nm?`<div class="sub" style="margin-top:6px">Next milestone: <b>${esc(nm.title)}</b>${nm.due?` · <span class="${nm.due<today()?'od':''}">${fmt(nm.due)}</span>`:''}${odm>1?` · <span class="od">${odm} overdue</span>`:''}</div>`:''}
     ${ups[0]?`<div style="margin-top:10px">${esc(ups[0].text.length>140?ups[0].text.slice(0,140)+'…':ups[0].text)}</div>`:''}
-    <div class="sub" style="margin-top:6px">${lu?`Last update ${fmt(lu)}${age>=14&&i.status!='Done'?` · <span class="warn">${age} days ago</span>`:''}`:'No updates yet'}</div></div>`}).join(''):`<div class="empty">${S.initiatives.length?'Nothing here.':'No initiatives yet. Use initiatives for bigger projects with milestones.'}</div>`)+`</div>`}
+    <div class="sub" style="margin-top:6px">${lu?`Last update ${fmt(lu)}${age>=14&&i.status!='Delivered'?` · <span class="warn">${age} days ago</span>`:''}`:'No updates yet'}</div>`}</div>`}).join(''):`<div class="empty">${S.initiatives.length?'Nothing here.':'No initiatives yet. Use initiatives for bigger projects with milestones.'}</div>`)+`</div>`}
 function vInitDetail(){
   const i=S.initiatives.find(x=>x.id==openInit);if(!i){openInit=null;return vInits()}
   const ups=S.updates.filter(u=>u.initiative==i.id).sort((x,y)=>y.date<x.date?-1:1);
   const ts=S.tasks.filter(t=>t.initiative==i.id),to=tsort(ts.filter(t=>!t.done)),tdn=ts.length-to.length;
-  const ms=S.meetings.filter(m=>m.initiative==i.id).sort((x,y)=>mkey(y)<mkey(x)?-1:1).slice(0,8),ds=S.decisions.filter(d=>d.initiative==i.id);
-  return `<div style="margin-bottom:14px;display:flex;gap:6px;flex-wrap:wrap"><button class="btn ghost sm" onclick="openInit=null;render()">← All initiatives</button><button class="btn ghost sm" onclick="initForm('${i.id}')">Edit</button><button class="btn ghost sm" onclick="delInit('${i.id}')">Delete</button></div>
-  <div class="card"><div class="bar" style="background:${i.color||'#0A1F5C'}"></div><h2 style="margin:0 0 6px">${esc(i.name)} ${i.ceo?'<span class="chip ceo">CEO</span>':''}<span class="chip">${i.status}</span></h2><div class="sub">${[i.owner&&'Owner: '+esc(i.owner),i.region&&esc(i.region),i.target&&'Target '+fmt(i.target)].filter(Boolean).join(' · ')}</div>${i.desc?`<pre class="n" style="margin-top:10px">${esc(i.desc)}</pre>`:''}${msBar(i)}</div>
+  const ms=S.meetings.filter(m=>m.initiative==i.id).sort((x,y)=>mkey(y)<mkey(x)?-1:1).slice(0,8);
+  return `<div style="margin-bottom:14px;display:flex;gap:6px;flex-wrap:wrap"><button class="btn ghost sm" onclick="openInit=null;render()">← All initiatives</button><button class="btn ghost sm" onclick="initForm('${i.id}')">Edit</button><button class="btn ghost sm" onclick="delInit('${i.id}')">Delete</button>${i.status!='Delivered'?`<button class="btn sm ok" style="margin-left:auto" onclick="deliverModal('${i.id}')">✔ Mark as delivered</button>`:`<button class="btn ghost sm" style="margin-left:auto" onclick="reopenInit('${i.id}')">Reopen</button>`}</div>
+  <div class="card"><div class="bar" style="background:${i.color||'#0A1F5C'}"></div><h2 style="margin:0 0 6px">${esc(i.name)} ${i.ceo?'<span class="chip ceo">CEO</span>':''}${i.partner?'<span class="chip partner">Partner</span>':''}<span class="chip">${i.status}</span></h2><div class="sub">${[i.owner&&'Owner: '+esc(i.owner),i.region&&esc(i.region),i.target&&'Target '+fmt(i.target)].filter(Boolean).join(' · ')}</div>${i.desc?`<pre class="n" style="margin-top:10px">${esc(i.desc)}</pre>`:''}${msBar(i)}</div>
+  ${i.status=='Delivered'?`<div class="card concl" style="margin-top:16px"><h3>Conclusion <button class="btn sm ghost" onclick="deliverModal('${i.id}')">Edit</button><button class="btn sm pink" onclick="winFromInit('${i.id}')">★ Log as achievement</button></h3><div class="sub"><span class="chip Completed">✔ ${esc(i.outcome||'Delivered')}</span>${i.completedAt?'Completed '+fmt(i.completedAt):''}</div>${i.conclusion?`<pre class="n" style="margin-top:8px">${esc(i.conclusion)}</pre>`:'<div class="empty">No conclusion written yet. Click Edit to add one.</div>'}</div>`:''}
   <div class="grid" style="margin-top:16px">
   <div class="card"><h3>Milestones</h3><div class="quick"><input id="ms_t" placeholder="Add a milestone, press Enter" onkeydown="if(event.key=='Enter')addMs('${i.id}')"><input id="ms_d" type="date" title="Target date (optional)"><button class="btn sm" onclick="addMs('${i.id}')">Add</button></div>${(i.milestones||[]).length?[...i.milestones].sort((a,b)=>(a.done-b.done)||((a.due||'9')<(b.due||'9')?-1:1)).map(m=>`<div class="row ${m.done?'done':''}"><input type="checkbox" ${m.done?'checked':''} onchange="togMs('${i.id}','${m.id}')"><div class="t clickable" onclick="renMs('${i.id}','${m.id}')"><b>${esc(m.title)}</b><div class="sub ${!m.done&&m.due&&m.due<today()?'od':''}">${m.done?'Completed '+fmt(m.doneAt):(m.due?(m.due<today()?'Overdue · ':'Target ')+fmt(m.due):'')}</div></div><button class="x" onclick="delMs('${i.id}','${m.id}')">×</button></div>`).join(''):'<div class="empty">No milestones yet.</div>'}</div>
   <div class="card"><h3>Updates</h3><div class="quick qa"><input id="iu_t" placeholder="Add an update, press Enter" onkeydown="if(event.key=='Enter')addUpd('${i.id}')"><select id="iu_s" title="Change status"><option value="">Status: no change</option>${STAT.map(s=>`<option>${s}</option>`).join('')}</select><button class="btn sm" onclick="addUpd('${i.id}')">Add</button></div>${ups.length?ups.map(u=>`<div class="row"><div class="t"><div class="sub">${fmt(u.date)}</div>${esc(u.text)}</div><button class="x" onclick="delItem('updates','${u.id}')">×</button></div>`).join(''):'<div class="empty">No updates.</div>'}</div>
   <div class="card"><h3>Tasks <button class="btn sm" onclick="taskForm({initiative:'${i.id}'})">+ Task</button></h3>${to.length?to.map(taskRow).join(''):'<div class="empty">No open tasks.</div>'}${tdn?`<div class="sub" style="margin-top:6px">${tdn} completed</div>`:''}</div>
   <div class="card"><h3>Meetings</h3>${ms.length?ms.map(m=>`<div class="row clickable" onclick="meetingForm('${m.id}')"><div class="t"><b>${esc(m.title)}</b><div class="sub">${fmt(m.date)}${m.notes?'':' · no notes'}</div></div></div>`).join(''):'<div class="empty">Link meetings to this initiative to see them here.</div>'}</div>
-  <div class="card"><h3>Decisions & risks <button class="btn sm" onclick="drForm(null,{initiative:'${i.id}'})">+ Add</button></h3>${ds.length?ds.map(d=>`<div class="row clickable" onclick="drForm('${d.id}')"><div class="t"><b>${esc(d.title)}</b><div class="sub">${d.status}</div></div><span class="chip">${d.type}</span>${sev(d)?`<span class="chip sev${sev(d)}">${sev(d)}</span>`:''}</div>`).join(''):'<div class="empty">None.</div>'}</div></div>`}
-function addUpd(id){const t=$('#iu_t');if(!t.value.trim())return;const i=S.initiatives.find(x=>x.id==id),s=$('#iu_s').value;
+</div>`}
+function addUpd(id){const t=$('#iu_t'),s=$('#iu_s').value;if(s=='Delivered')return deliverModal(id,t.value.trim());if(!t.value.trim())return;const i=S.initiatives.find(x=>x.id==id);
   let txt=t.value.trim();if(s&&s!=i.status){txt+=` (status → ${s})`;i.status=s}
   S.updates.push({id:uid(),initiative:id,date:today(),text:txt});save();render();$('#iu_t')?.focus()}
+function deliverModal(id,pre){const i=S.initiatives.find(x=>x.id==id),first=i.status!='Delivered';
+  form(first?'Mark as delivered':'Edit conclusion',[['completedAt','Completion date','date'],['outcome','Outcome','select',['Delivered','Partially delivered','Closed – not delivered']],['conclusion','Conclusion – what was delivered, results / impact, lessons learned','area']],
+    {completedAt:i.completedAt||today(),outcome:i.outcome||'Delivered',conclusion:i.conclusion||pre||''},d=>{
+    Object.assign(i,d,{status:'Delivered'});
+    if(first){S.updates.push({id:uid(),initiative:id,date:d.completedAt,text:`✔ ${d.outcome}${d.conclusion?': '+d.conclusion:''}`});setTimeout(()=>toast('Initiative marked as delivered'),0)}});
+  const ta=$('#modal textarea[name=conclusion]');if(ta)ta.style.minHeight='160px'}
+function reopenInit(id){const i=S.initiatives.find(x=>x.id==id);i.status='On track';S.updates.push({id:uid(),initiative:id,date:today(),text:'Reopened'});save();render()}
+function winFromInit(id){const i=S.initiatives.find(x=>x.id==id);winForm(null,{title:i.name+(i.outcome&&i.outcome!='Delivered'?' – '+i.outcome:' – delivered'),date:i.completedAt||today(),category:'Delivery',impact:i.conclusion||'',desc:i.desc||''})}
 function initForm(id){
   const i=id?S.initiatives.find(x=>x.id==id):{id:'',name:'',owner:'',region:'',target:'',status:'On track',ceo:false,color:'#0A1F5C',desc:''};
-  form(id?'Edit initiative':'New initiative',[['name','Name','text'],['owner','Owner / sponsor','text'],['region','Region','select',[['','—'],...REGIONS.map(r=>[r,r]),['Multi-region','Multi-region']]],['target','Target completion date','date'],['status','Status','select',STAT],['ceo','Show on CEO page and in CEO updates','check'],['color','Colour','color'],['desc','Description / goal','area']],i,d=>{
+  form(id?'Edit initiative':'New initiative',[['name','Name','text'],['owner','Owner / sponsor','text'],['region','Region','select',[['','—'],...REGIONS.map(r=>[r,r]),['Multi-region','Multi-region']]],['target','Target completion date','date'],['status','Status','select',STAT],['ceo','Show on CEO page and in CEO updates','check'],['partner','Show on Partners page and in Partner updates','check'],['color','Colour','color'],['desc','Description / goal','area']],i,d=>{
     if(!d.name.trim())return;if(id)Object.assign(i,d);else S.initiatives.push({id:uid(),milestones:[],...d})})}
 function delInit(id){if(confirm('Delete initiative? Its updates are removed; tasks are kept.')){S.initiatives=S.initiatives.filter(i=>i.id!=id);S.updates=S.updates.filter(u=>u.initiative!=id);openInit=null;save();render()}}
-
-/* ---------- Decisions & risks ---------- */
-const LV=['Low','Medium','High'],lvn={Low:1,Medium:2,High:3};
-const sev=d=>{if(d.type!='Risk')return '';const p=(lvn[d.likelihood]||0)*(lvn[d.impact]||0);return !p?'':p>=6?'High':p>=3?'Medium':'Low'};
-const sevn={High:3,Medium:2,Low:1,'':0};
-function vDR(){
-  const base=S.decisions.filter(match);
-  const c={open:base.filter(d=>d.status=='Open').length,risk:base.filter(d=>d.type=='Risk'&&d.status=='Open').length,decision:base.filter(d=>d.type=='Decision').length,all:base.length};
-  const a=base.filter(d=>tab=='all'||(tab=='open'?d.status=='Open':d.type.toLowerCase()==tab))
-    .sort((x,y)=>(x.status=='Open'?0:1)-(y.status=='Open'?0:1)||sevn[sev(y)]-sevn[sev(x)]||(y.date<x.date?-1:1));
-  const tabs=[['open',`Open · ${c.open}`],['risk',`Risks · ${c.risk} open`],['decision',`Decisions · ${c.decision}`],['all','All']];
-  return `<div class="tabs">${tabs.map(([k,l])=>`<button class="btn ${tab==k?'on':''}" onclick="tab='${k}';renderView()">${l}</button>`).join('')}</div><div class="card">`+
-  (a.length?a.map(d=>{const s=sev(d);return `<div class="row ${d.status=='Closed'?'done':''}"><span class="chip">${d.type}</span><div class="t clickable" onclick="drForm('${d.id}')"><b>${esc(d.title)}</b><div class="sub">${[fmt(d.date),d.owner&&esc(d.owner),d.region&&esc(d.region),d.initiative&&esc(initName(d.initiative))].filter(Boolean).join(' · ')}</div>${d.detail?`<div class="sub">${esc(d.detail.slice(0,140))}</div>`:''}${d.type=='Risk'&&d.mitigation?`<div class="sub"><b>Mitigation:</b> ${esc(d.mitigation.slice(0,140))}</div>`:''}</div>${s?`<span class="chip sev${s}" title="Likelihood ${d.likelihood} × impact ${d.impact}">${s} risk</span>`:''}<button class="chip" title="Click to ${d.status=='Open'?'close':'reopen'}" onclick="togDR('${d.id}')">${d.status}</button><button class="x" onclick="delItem('decisions','${d.id}')">×</button></div>`}).join(''):'<div class="empty">Nothing here. Log decisions so you can show why something was agreed, and risks so nothing surprises you.</div>')+`</div>`}
-function togDR(id){const d=S.decisions.find(x=>x.id==id);d.status=d.status=='Open'?'Closed':'Open';save();render()}
-function drForm(id,pre){
-  const d=id?S.decisions.find(x=>x.id==id):{id:'',type:'Decision',title:'',detail:'',owner:'',region:'',likelihood:'',impact:'',mitigation:'',date:today(),status:'Open',initiative:'',...(pre||{})};
-  form(id?'Edit entry':'New decision / risk',[['type','Type','select',['Decision','Risk']],['title','Title','text'],['detail','Context / rationale','area'],['owner','Owner / decided by','text'],['region','Region','select',[['','—'],...REGIONS.map(r=>[r,r])]],
-    ['likelihood','Likelihood (risks)','select',[['','—'],...LV.map(x=>[x,x])]],['impact','Impact (risks)','select',[['','—'],...LV.map(x=>[x,x])]],['mitigation','Mitigation plan (risks)','area'],
-    ['date','Date','date'],['status','Status','select',['Open','Closed']],['initiative','Initiative','select',[['','—'],...S.initiatives.map(i=>[i.id,i.name])]]],d,x=>{
-    if(!x.title.trim())return;if(id)Object.assign(d,x);else S.decisions.push({id:uid(),...x})})}
 
 /* ---------- Objectives & achievements ---------- */
 let dtab='obj',oexp=new Set(),sumYear=String(new Date().getFullYear());
@@ -606,7 +609,7 @@ function form(title,fields,data,onSave,onDel){
   f.onsubmit=e=>{e.preventDefault();const d={};if($('#newtag'))addTagChip();
     fields.forEach(([k,,t])=>{
       if(t=='tags')d[k]=[...f.querySelectorAll('[data-tag]:checked')].map(c=>c.dataset.tag);
-      else if(t=='actions')d[k]=[...f.querySelectorAll('.arow')].map(r=>({id:r.dataset.id,taskId:r.dataset.task,title:r.querySelector('.at').value.trim(),region:r.querySelector('.ar').value,priority:r.querySelector('.ap').value,due:r.querySelector('.ad').value,ceo:r.querySelector('.ac').checked})).filter(r=>r.title);
+      else if(t=='actions')d[k]=[...f.querySelectorAll('.arow')].map(r=>({id:r.dataset.id,taskId:r.dataset.task,title:r.querySelector('.at').value.trim(),region:r.querySelector('.ar').value,priority:r.querySelector('.ap').value,due:r.querySelector('.ad').value,ceo:r.querySelector('.ac').checked,partner:!!r.querySelector('.apt')?.checked})).filter(r=>r.title);
       else{const el=f.elements[k];d[k]=t=='check'?el.checked:el.value}});onSave(d);save();closeM();render();return false};
 }
 function tagChip(g,c){return `<label class="chip tagpick"><input type="checkbox" data-tag="${esc(g)}" ${c?'checked':''}> ${esc(g)}</label>`}
@@ -627,7 +630,7 @@ function toast(msg,undo){const el=$('#toast');el.innerHTML=`<span>${esc(msg)}</s
   if(undo)$('#undo').onclick=()=>{undo();el.className=''};clearTimeout(toastT);toastT=setTimeout(()=>el.className='',undo?7000:3000)}
 document.addEventListener('keydown',e=>{
   const tg=e.target.tagName;if(['INPUT','TEXTAREA','SELECT'].includes(tg)||$('#modal').innerHTML||e.metaKey||e.ctrlKey||e.altKey)return;
-  if(e.key=='n'||e.key=='N'){e.preventDefault();taskForm(view=='ceo'?{ceo:true}:undefined)}
+  if(e.key=='n'||e.key=='N'){e.preventDefault();taskForm(view=='ceo'?{ceo:true}:view=='partner'?{partner:true}:undefined)}
   else if(e.key=='/'){e.preventDefault();$('#srch')?.focus()}});
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 
